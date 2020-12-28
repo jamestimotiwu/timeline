@@ -9,7 +9,7 @@
 		<input type="range" id="input-right" min="0" max="100" value="100">
 		<div class="slider">
 			<div class="track"></div>
-			<div class="range">
+			<div id="range_out" class="range">
       </div>
       <div id="strip-out">
       </div>
@@ -18,9 +18,9 @@
 		</div>
 	</div>
 </div>
-<script src="../drag.js"></script>
+<script src="drag.js"></script>
 <script>
-    draggable(document.getElementById('outer-slider'));
+    draggable(document.getElementById('range_out'), document.getElementById('outer-slider'));
 </script>
 
 <script type="text/javascript" src="multihandle.js"></script>
