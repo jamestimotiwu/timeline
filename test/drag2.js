@@ -11,6 +11,7 @@ class Draggable {
     this.onMouseUp = this.onMouseUp.bind(this)
     this.addEventHandlers()
     //this.prepareElement()
+    this.finalItem = null
   }
 
   addEventHandlers() {
@@ -36,6 +37,8 @@ class Draggable {
   prepareElement() {
     this.el.style.position = 'absolute'
     this.el.style.zIndex = 999
+    // Get element
+    this.finalItem = Object.assign(getItemByElement(this.el))
   }
 
   moveElementTo(x, y) {
@@ -49,11 +52,15 @@ class Draggable {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
     if(resolveCollision(item)){
-      applyPositionToItems(item);
+      this.finalItem = applyPositionToItems(item);
     }
   }
 
   onMouseUp(e) {
+    // Move element to final item location
+    console.log(this.finalItem);
+    this.el.style.left = this.finalItem.x;
+    this.el.style.top = this.finalItem.y;
     document.removeEventListener('mousemove', this.onMouseMove)
   }
 
@@ -171,12 +178,14 @@ function applyPositionToItems(item) {
   //console.log("applying position except on item");
   // iterate over all items
   console.log(items);
+  let finalItem = null
   for(var i=0;i < items.length; i++) {
     if(item.element === items[i].element){
-      continue;
+      finalItem = items[i];
     }
     items[i].element.style.left = items[i].x;
     items[i].element.style.top = items[i].y;
   }
+  return Object.assign(finalItem);
 }
 
