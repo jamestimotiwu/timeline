@@ -10,6 +10,7 @@ class Draggable {
     this.onMouseMove = this.onMouseMove.bind(this)
     this.onMouseUp = this.onMouseUp.bind(this)
     this.addEventHandlers()
+    //this.prepareElement()
   }
 
   addEventHandlers() {
@@ -76,6 +77,13 @@ elements.map((elem, i) => {
     id: i,
   })
 });
+
+items.map((item) => {
+  item.element.style.left = item.x;
+  item.element.style.top = item.y;
+  item.element.style.position = 'absolute'
+  item.element.style.zIndex = 999
+});
 //const draggables = document.querySelectorAll('.draggable')
 
 //for (let draggable of draggables) {
@@ -101,12 +109,19 @@ function getItemByElement(element) {
 // Check item overlap
 // item1 is item to check, item2 is moving element
 function collisionLeft(item1, item2) {
+  // if same item
+  if(item1.element === item2.element) {
+    //console.log("same item: ", i );
+    return false;
+  }
+  let boundItem = item2.element.getBoundingClientRect();
   let r_offset = Math.round(item1.w / 4);
   console.log("id: ", item1.id);
-  console.log("moving: ", item2.r);
+  console.log("moving: ", boundItem.right);
   console.log("static: ", item1.r);
 
-  return ((item1.y - item1.h/2) < item2.y) && ((item1.r - r_offset) < item2.r && item2.r < item1.r);
+  return ((item1.y - item1.h/2) < boundItem.y) 
+    && ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r);
 }
 
 function sortByLeft(item1, item2) {
@@ -119,22 +134,31 @@ function resolveCollision(item) {
   let prev_left = 0;
 
   for(var i = 0;i < items.length; i++) {
-    // if same item
-    if(item.element === items[i].element) {
-      //console.log("same item: ", i );
-      continue;
-    }
     if(collisionLeft(items[i], item)) {
       console.log("collision detected: ", i);
       isCollide = true;
+      // Set new item position 
+      item.x = items[i].x;
+      item.r = item.x + item.w;
+      prev_left = item.r
     }
 
     // Set new values for collisions
+    // new Values for collision using moving object
+    // Set moving object at collision location
     if(isCollide) {
+      // if same item
+      if(item.id === items[i].id) {
+        items[i] = item;
+        continue;
+      }
+      console.log(items[i]);
+      console.log(prev_left);
       items[i].x = prev_left;
-      items[i].r = items[i].x + items[i].w
+      console.log(items[i].x + items[i].w);
+      items[i].r = items[i].x + items[i].w;
     }
-    prev_left = items[i].left;
+    prev_left = items[i].r;
   }
   if (isCollide) {
     // sort list
@@ -148,10 +172,12 @@ function resolveCollision(item) {
 function applyPositionToItems(item) {
   //console.log("applying position except on item");
   // iterate over all items
+  console.log(items);
   for(var i=0;i < items.length; i++) {
+    /*
     if(item.element === items[i].element){
       continue;
-    }
+    }*/
     items[i].element.style.left = items[i].x;
     items[i].element.style.top = items[i].y;
   }
