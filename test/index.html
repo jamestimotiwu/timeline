@@ -1,0 +1,33 @@
+<style>
+    .parent {
+      white-space: nowrap;
+    }
+    .elem {
+        width: 100px;
+        height: 100px;
+        background: skyblue;
+        position: relative;
+        display:inline-block;
+    }
+
+    .elem:hover {
+      cursor: e-resize;
+    }
+</style>
+
+<div class="parent">
+  <div style="width: 250px; background: #fcc" class="elem" id="element1"></div>
+  <div style="width: 150px; background: #ccf" class="elem" id="element2"></div>
+  <div class="elem" id="element3"></div>
+</div>
+
+<script src="drag2.js"></script>
+<script>
+    const elem1 = document.getElementById('element1');
+    const elem2 = document.getElementById('element2');
+    const elem3 = document.getElementById('element3');
+    new Draggable(elem1, elem1);
+    new Draggable(elem2, elem2);
+    new Draggable(elem3, elem3);
+    //draggable(document.getElementById('element'));
+</script>
