@@ -47,8 +47,9 @@ class Draggable {
 
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
-    if(resolveCollision(getItemByElement(this.el))){
-      applyPositionToItems();
+    let item = getItemByElement(this.el);
+    if(resolveCollision(item)){
+      applyPositionToItems(item);
     }
   }
 
@@ -152,10 +153,7 @@ function resolveCollision(item) {
         items[i] = item;
         continue;
       }
-      console.log(items[i]);
-      console.log(prev_left);
-      items[i].x = prev_left;
-      console.log(items[i].x + items[i].w);
+      items[i].x = prev_left + 4;
       items[i].r = items[i].x + items[i].w;
     }
     prev_left = items[i].r;
@@ -174,10 +172,9 @@ function applyPositionToItems(item) {
   // iterate over all items
   console.log(items);
   for(var i=0;i < items.length; i++) {
-    /*
     if(item.element === items[i].element){
       continue;
-    }*/
+    }
     items[i].element.style.left = items[i].x;
     items[i].element.style.top = items[i].y;
   }
