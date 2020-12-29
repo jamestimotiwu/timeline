@@ -124,12 +124,27 @@ function collisionLeft(item1, item2) {
   }
   let boundItem = item2.element.getBoundingClientRect();
   let r_offset = Math.round(item1.w / 4);
+  let t_offset = Math.round(item1.h / 2);
   console.log("id: ", item1.id);
   console.log("moving: ", boundItem.right);
   console.log("static: ", item1.r);
 
-  return ((item1.y - item1.h/2) < boundItem.y) 
-    && ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r);
+  return ((item1.y + t_offset) > boundItem.y) 
+    && ((item1.r - r_offset) > boundItem.left && boundItem.left > item1.x);
+}
+
+function collisionRight(item, item2) {
+  // test left corner
+  // if same item
+  if(item1.element === item2.element) {
+    return false;
+  }
+  let boundItem = item2.element.getBoundingClientRect();
+  let r_offset = Math.round(item1.w / 4);
+  let t_offset = Math.round(item1.h / 2);
+
+  return ((item1.y + t_offset) > boundItem.y) 
+    && ((item1.r - r_offset) < boundItem.left && boundItem.right < item1.r);
 }
 
 function sortByLeft(item1, item2) {
