@@ -62,11 +62,12 @@ class Draggable {
 
   onMouseUp(e) {
     // Move element to final item location
-    console.log(this.finalItem);
-    this.el.style.left = this.finalItem.x;
-    this.el.style.top = this.finalItem.y;
-    console.log(items);
-    this.finalItem = null
+    // null check
+    if(this.finalItem) {
+      this.el.style.left = this.finalItem.x;
+      this.el.style.top = this.finalItem.y;
+      this.finalItem = null
+    }
     document.removeEventListener('mousemove', this.onMouseMove)
   }
 
@@ -162,6 +163,7 @@ function sortByLeft(item1, item2) {
 function swapItem(list, idx1, idx2) {
   let newArr = [];
   let prev_left = 0;
+  let newItem2 = Object.assign(items[idx2]);
   for(var i = 0; i < list.length; i++) {
     if(i === 0) {
       prev_left = list[0].x;
@@ -169,30 +171,30 @@ function swapItem(list, idx1, idx2) {
     if(i === idx2) {
       continue;
     }
-    if(i === idx1) {
-      let newItem = {
-        element: list[idx2].element,
-        x: prev_left,
-        y: list[idx2].y,
-        r: prev_left + 4 + list[idx2].w,
-        h: list[idx2].h,
-        w: list[idx2].w,
-        id: list[idx2].id,
+    let newItem1 = Object.assign(items[i])
+    if(idx1 < idx2) {
+      if(i === idx1) {
+        newItem2.x = prev_left
+        newItem2.r = prev_left + 4 + newItem2.w;
+        prev_left = newItem2.r;
+        newArr.push(newItem2);
       }
-      prev_left = newItem.r;
-      newArr.push(newItem);
+      newItem1.x = prev_left
+      newItem1.r = prev_left + 4 + newItem1.w;
+      prev_left = newItem1.r;
+      newArr.push(newItem1);
+    } else {
+      newItem1.x = prev_left
+      newItem1.r = prev_left + 4 + newItem1.w;
+      prev_left = newItem1.r;
+      newArr.push(newItem1);
+      if(i === idx1) {
+        newItem2.x = prev_left
+        newItem2.r = prev_left + 4 + newItem2.w;
+        prev_left = newItem2.r;
+        newArr.push(newItem2);
+      }
     }
-    let newItem = {
-      element: list[i].element,
-      x: prev_left,
-      y: list[i].y,
-      r: prev_left + 4 + list[i].w,
-      h: list[i].h,
-      w: list[i].w,
-      id: list[i].id,
-    }
-    prev_left = newItem.r;
-    newArr.push(newItem);
   }
   console.log("new: ",newArr.length);
   return newArr;
@@ -214,6 +216,9 @@ function resolveCollision(item) {
     if(item.id === items[i].id) {
       itemIdx = i;
     }
+  }
+  if (isCollide) {
+    console.log("col_idx: ", collisionIdx," item_idx: ", itemIdx);
   }
 
   return [isCollide, collisionIdx, itemIdx];
