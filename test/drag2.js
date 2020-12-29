@@ -172,6 +172,8 @@ function swapItem(list, idx1, idx2) {
       continue;
     }
     let newItem1 = Object.assign(items[i])
+
+    // Check ordering of items to determine rearrangement
     if(idx1 < idx2) {
       if(i === idx1) {
         newItem2.x = prev_left
@@ -231,14 +233,15 @@ function applyPositionToItems(item, collisionIdx, itemIdx) {
   let newItems = swapItem(items, collisionIdx, itemIdx);
   console.log(newItems);
   let finalItem = null
-  items = newItems;
-  for(var i=0;i < items.length; i++) {
-    if(item.element === items[i].element){
-      finalItem = items[i];
+  for(var i=0;i < newItems.length; i++) {
+    if(item.element === newItems[i].element){
+      finalItem = newItems[i];
+      continue;
     }
-    items[i].element.style.left = items[i].x;
-    items[i].element.style.top = items[i].y;
+    newItems[i].element.style.left = newItems[i].x;
+    newItems[i].element.style.top = newItems[i].y;
   }
+  items = newItems;
   return Object.assign(finalItem);
 }
 
