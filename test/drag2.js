@@ -12,6 +12,7 @@ class Draggable {
     this.addEventHandlers()
     //this.prepareElement()
     this.finalItem = null
+    this.finalItems = null
   }
 
   addEventHandlers() {
@@ -51,8 +52,11 @@ class Draggable {
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
-    if(resolveCollision(item)){
-      this.finalItem = applyPositionToItems(item);
+    var colReturn = resolveCollision(item);
+    if(colReturn[0]){
+      console.log("isCollide!")
+
+      this.finalItem = applyPositionToItems(item, colReturn[1], colReturn[2]);
     }
   }
 
@@ -61,6 +65,8 @@ class Draggable {
     console.log(this.finalItem);
     this.el.style.left = this.finalItem.x;
     this.el.style.top = this.finalItem.y;
+    console.log(items);
+    this.finalItem = null
     document.removeEventListener('mousemove', this.onMouseMove)
   }
 
@@ -151,49 +157,76 @@ function sortByLeft(item1, item2) {
   return item1.x - item2.x;
 }
 
+// idx1 is new idx of moving item/idx of colliding elem
+// idx2 is curr idx of moving item
+function swapItem(list, idx1, idx2) {
+  let newArr = [];
+  let prev_left = 0;
+  for(var i = 0; i < list.length; i++) {
+    if(i === 0) {
+      prev_left = list[0].x;
+    }
+    if(i === idx2) {
+      continue;
+    }
+    if(i === idx1) {
+      let newItem = {
+        element: list[idx2].element,
+        x: prev_left,
+        y: list[idx2].y,
+        r: prev_left + 4 + list[idx2].w,
+        h: list[idx2].h,
+        w: list[idx2].w,
+        id: list[idx2].id,
+      }
+      prev_left = newItem.r;
+      newArr.push(newItem);
+    }
+    let newItem = {
+      element: list[i].element,
+      x: prev_left,
+      y: list[i].y,
+      r: prev_left + 4 + list[i].w,
+      h: list[i].h,
+      w: list[i].w,
+      id: list[i].id,
+    }
+    prev_left = newItem.r;
+    newArr.push(newItem);
+  }
+  console.log("new: ",newArr.length);
+  return newArr;
+}
+
 // item1 is item checked, item2 is moving element
 function resolveCollision(item) {
   let isCollide = false;
-  let prev_left = 0;
+  //let prev_left = 0;
+  let collisionIdx = -1;
+  let itemIdx = -1;
 
   for(var i = 0;i < items.length; i++) {
     if(collisionLeft(items[i], item)) {
       console.log("collision detected: ", i);
       isCollide = true;
-      // Set new item position 
-      item.x = items[i].x;
-      item.r = item.x + item.w;
-      prev_left = item.r
+      collisionIdx = i;
     }
+    if(item.id === items[i].id) {
+      itemIdx = i;
+    }
+  }
 
-    // Set new values for collisions
-    // new Values for collision using moving object
-    // Set moving object at collision location
-    if(isCollide) {
-      // if same item
-      if(item.id === items[i].id) {
-        items[i] = item;
-        continue;
-      }
-      items[i].x = prev_left + 4;
-      items[i].r = items[i].x + items[i].w;
-    }
-    prev_left = items[i].r;
-  }
-  if (isCollide) {
-    // sort list
-    items.sort(sortByLeft);
-    // apply change in css by modifying drag elements to new positions
-    return true;
-  }
-  return false;
+  return [isCollide, collisionIdx, itemIdx];
 }
 
-function applyPositionToItems(item) {
+function applyPositionToItems(item, collisionIdx, itemIdx) {
   //console.log("applying position except on item");
   // iterate over all items
-  console.log(items);
+  //console.log(items);
+  let newItems = swapItem(items, collisionIdx, itemIdx);
+  console.log(newItems);
   let finalItem = null
+  items = newItems;
   for(var i=0;i < items.length; i++) {
     if(item.element === items[i].element){
       finalItem = items[i];
