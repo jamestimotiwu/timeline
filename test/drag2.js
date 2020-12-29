@@ -102,7 +102,11 @@ function getItemByElement(element) {
 // item1 is item to check, item2 is moving element
 function collisionLeft(item1, item2) {
   let r_offset = Math.round(item1.w / 4);
-  return (item1.y - item1.h/2 < item2.y) || (item1.r - r_offset < item2.r);
+  console.log("id: ", item1.id);
+  console.log("moving: ", item2.r);
+  console.log("static: ", item1.r);
+
+  return ((item1.y - item1.h/2) < item2.y) && ((item1.r - r_offset) < item2.r && item2.r < item1.r);
 }
 
 function sortByLeft(item1, item2) {
@@ -117,10 +121,11 @@ function resolveCollision(item) {
   for(var i = 0;i < items.length; i++) {
     // if same item
     if(item.element === items[i].element) {
-      console.log("same item: ", i );
+      //console.log("same item: ", i );
       continue;
     }
     if(collisionLeft(items[i], item)) {
+      console.log("collision detected: ", i);
       isCollide = true;
     }
 
@@ -140,10 +145,13 @@ function resolveCollision(item) {
   return false;
 }
 
-function applyPositionToItems() {
-  console.log("applying position");
+function applyPositionToItems(item) {
+  //console.log("applying position except on item");
   // iterate over all items
   for(var i=0;i < items.length; i++) {
+    if(item.element === items[i].element){
+      continue;
+    }
     items[i].element.style.left = items[i].x;
     items[i].element.style.top = items[i].y;
   }
