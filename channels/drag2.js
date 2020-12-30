@@ -1,4 +1,5 @@
 var items = [];
+var tempItems = [];
 
 class Draggable {
   constructor(dr,el) {
@@ -39,7 +40,11 @@ class Draggable {
     this.el.style.position = 'absolute'
     this.el.style.zIndex = 999 
     // Get element
-    this.finalItem = Object.assign(getItemByElement(this.el))
+    try {
+      this.finalItem = Object.assign(getItemByElement(this.el))
+    } catch(err) {
+      this.finalItem = null
+    }
   }
 
   moveElementTo(x, y) {
@@ -54,10 +59,19 @@ class Draggable {
     let item = getItemByElement(this.el);
     var colReturn = resolveCollision(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
     if(colReturn[0]){
-      /*
-      console.log("isCollide!")
-      */
-      this.finalItem = applyPositionToItems(item, colReturn[1], colReturn[2]);
+      let newItems = swapItem(items, colReturn[1], colReturn[2], item);
+      this.finalItem = applyPositionToItems(item, newItems);
+    } else if(!checkSelf(item, e.pageX - this.shiftX, e.pageY - this.shiftY)) {
+      // Check if self outside and also no longer within bounds of item
+      // Remove item if no collision and leave bounds
+      console.log("outside!");
+      if (colReturn[2] != -1) {
+        this.finalItem = applyPositionToItems(item, removeItem(items,colReturn[2]));
+        // Add to temp items because it was temporarily removed
+        tempItems.push(item);
+      }
+      this.finalItem.x = e.pageX - this.shiftX;
+      this.finalItem.y = e.pageY - this.shiftY;
     }
   }
 
@@ -79,8 +93,8 @@ class Draggable {
 /*** CREATE ELEMENTS ***/
 var elements = [];
 const root = document.getElementById('root');
-root.innerHTML = generateElements(1000);
-mapElements(1000);
+root.innerHTML = generateElements(10);
+mapElements(10);
 
 items.map((item) => {
   item.element.style.left = item.x;
@@ -105,7 +119,7 @@ function mapElements(n) {
   for(var i=0;i<n;i++) {
     let id = "element" + i;
     let elem = document.getElementById(id);
-    elem.style.width = 5 + (Math.floor(Math.random() * Math.floor(150-70)));
+    elem.style.width = 100 + (Math.floor(Math.random() * Math.floor(150-100)));
     elem.style.background = randomColor();
 
     new Draggable(elem, elem);
@@ -137,25 +151,35 @@ function getItemByElement(element) {
       return items[i];
     }
   }
+  // Check temp items if can't find item
+  for(var i=0;i<tempItems.length;i++){
+    if(element === tempItems[i].element) {
+      console.log("found temp");
+      return tempItems[i];
+    }
+  }
 }
 
 /**** SNAPPING ****/
 // Find item coliding with item/overlap
 // Check item overlap
 // item1 is item to check, item2 is moving element
-function collisionLeft(item1, item2, newX, newY) {
+function checkCollision(item1, item2, newX, newY) {
   // if same item
   if(item1.element === item2.element) {
-    //console.log("same item: ", i );
+    // If same item check if still within bounds
+    // If not remove from list
+    // Alternatively, do this only if collision is not found yet it escaped from bounds
+    //console.log("same item: ", item1.i );
     return false;
   }
-  let boundItem = {
+  const boundItem = {
     left: newX,
     right: newX + item2.w,
     y: newY,
   }
-  let r_offset = Math.round(item1.w / 3);
-  let t_offset = Math.round(item1.h / 2);
+  const r_offset = Math.round(item1.w / 3);
+  const t_offset = Math.round(item1.h / 2);
   //console.log("id: ", item1.id);
   //console.log("moving: ", boundItem.right);
   //console.log("static: ", item1.r);
@@ -165,12 +189,22 @@ function collisionLeft(item1, item2, newX, newY) {
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
 }
 
-// idx1 is new idx of moving item/idx of colliding elem
+function checkSelf(item1, newX, newY) {
+  return !(newX > item1.x + item1.w ||
+    newX + item1.w < item1.x ||
+    newY > item1.y + item1.h ||
+    newY + item1.h < item1.y);
+}
+
+// idx1 is new idx for moving item/idx of colliding elem
 // idx2 is curr idx of moving item
-function swapItem(list, idx1, idx2) {
+function swapItem(list, idx1, idx2, item) {
   let newArr = [];
   let prev_left = 0;
-  let newItem2 = Object.assign(items[idx2]);
+  let y = 4;
+  let newItem1, newItem2 = null;
+  newItem2 = Object.assign(item);
+  newItem2.y = y;
   for(var i = 0; i < list.length; i++) {
     if(i === 0) {
       prev_left = list[0].x;
@@ -178,10 +212,13 @@ function swapItem(list, idx1, idx2) {
     if(i === idx2) {
       continue;
     }
-    let newItem1 = Object.assign(items[i])
+    newItem1 = Object.assign(items[i])
+    newItem1.y = y;
 
     // Check ordering of items to determine rearrangement
-    if(idx1 < idx2) {
+    // If idx2 <- -1, was removed so push everything to left
+    if(idx1 < idx2 || idx2 === -1) {
+      // Push left
       if(i === idx1) {
         newItem2.x = prev_left
         newItem2.r = prev_left + 4 + newItem2.w;
@@ -193,6 +230,7 @@ function swapItem(list, idx1, idx2) {
       prev_left = newItem1.r;
       newArr.push(newItem1);
     } else {
+      // Push right
       newItem1.x = prev_left
       newItem1.r = prev_left + 4 + newItem1.w;
       prev_left = newItem1.r;
@@ -209,6 +247,31 @@ function swapItem(list, idx1, idx2) {
   return newArr;
 }
 
+// Removes item from item list
+function removeItem(list, idx) {
+  let newArr = null;
+  let y = 4;
+  let prev_left = 0;
+  if(idx === -1) {
+    return list;
+  }
+  //console.log("spliced!", idx)
+  list.splice(idx,1);
+  newArr = list;
+  for(var i=0;i<newArr.length;i++) {
+    if(i===0){
+      prev_left = newArr[i].x + 4 + newArr[i].w;
+    } else {
+      newArr[i].x = prev_left;
+      newArr[i].r = prev_left + 4 + newArr[i].w;
+      prev_left = newArr[i].r
+      newArr[i].y = y;
+    }
+  }
+  //console.log(newArr);
+  return newArr;
+}
+
 // item1 is item checked, item2 is moving element
 function resolveCollision(item, newX, newY) {
   let isCollide = false;
@@ -217,15 +280,14 @@ function resolveCollision(item, newX, newY) {
   let itemIdx = -1;
 
   for(var i = 0;i < items.length; i++) {
-    if(collisionLeft(items[i], item, newX, newY)) {
-      /*
+    if(checkCollision(items[i], item, newX, newY)) {
       console.log("collision detected: ", i);
-      */
       isCollide = true;
       collisionIdx = i;
     }
     if(item.id === items[i].id) {
       itemIdx = i;
+      console.log(checkSelf(item, newX, newY));
     }
   }
   /*
@@ -233,15 +295,14 @@ function resolveCollision(item, newX, newY) {
     console.log("col_idx: ", collisionIdx," item_idx: ", itemIdx);
   }
   */
-
   return [isCollide, collisionIdx, itemIdx];
 }
 
-function applyPositionToItems(item, collisionIdx, itemIdx) {
+// Apply item structure on elements
+function applyPositionToItems(item, newItems) {
   //console.log("applying position except on item");
   // iterate over all items
-  let newItems = swapItem(items, collisionIdx, itemIdx);
-  let finalItem = null
+  let finalItem = item 
   for(var i=0;i < newItems.length; i++) {
     if(item.element === newItems[i].element){
       finalItem = newItems[i];
@@ -262,6 +323,7 @@ function newHighlight(x, y, width) {
   proposedBlock.innerHTML = '<div style="'+sty+'" class="elem" id="highlighted-block"></div>';
 }
 
+// clear highlight of items
 function clearHighlight() {
   const proposedBlock = document.getElementById('highlight');
   proposedBlock.innerHTML = '';
