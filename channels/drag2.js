@@ -54,8 +54,9 @@ class Draggable {
     let item = getItemByElement(this.el);
     var colReturn = resolveCollision(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
     if(colReturn[0]){
+      /*
       console.log("isCollide!")
-
+      */
       this.finalItem = applyPositionToItems(item, colReturn[1], colReturn[2]);
     }
   }
@@ -64,6 +65,7 @@ class Draggable {
     // Move element to final item location
     // null check
     if(this.finalItem) {
+      //clearHighlight();
       this.el.style.left = this.finalItem.x;
       this.el.style.top = this.finalItem.y;
       this.finalItem = null
@@ -128,18 +130,6 @@ function randomColor() {
   }
   return col;
 }
-
-//const draggables = document.querySelectorAll('.draggable')
-
-//for (let draggable of draggables) {
-//new Draggable(draggable)
-//}
-
-
-// onMouseUp -> applyPositionToItems if collision found or new position found
-// onMouseMove -> check using resolveCollision(item)
-// 
-//
 
 function getItemByElement(element) {
   for(var i=0;i<items.length;i++) {
@@ -215,7 +205,7 @@ function swapItem(list, idx1, idx2) {
       }
     }
   }
-  console.log("new: ",newArr.length);
+  //console.log("new: ",newArr.length);
   return newArr;
 }
 
@@ -228,7 +218,9 @@ function resolveCollision(item, newX, newY) {
 
   for(var i = 0;i < items.length; i++) {
     if(collisionLeft(items[i], item, newX, newY)) {
+      /*
       console.log("collision detected: ", i);
+      */
       isCollide = true;
       collisionIdx = i;
     }
@@ -236,9 +228,11 @@ function resolveCollision(item, newX, newY) {
       itemIdx = i;
     }
   }
+  /*
   if (isCollide) {
     console.log("col_idx: ", collisionIdx," item_idx: ", itemIdx);
   }
+  */
 
   return [isCollide, collisionIdx, itemIdx];
 }
@@ -251,6 +245,7 @@ function applyPositionToItems(item, collisionIdx, itemIdx) {
   for(var i=0;i < newItems.length; i++) {
     if(item.element === newItems[i].element){
       finalItem = newItems[i];
+      newHighlight(newItems[i].x, newItems[i].y, newItems[i].w);
       continue;
     }
     newItems[i].element.style.left = newItems[i].x;
@@ -261,7 +256,14 @@ function applyPositionToItems(item, collisionIdx, itemIdx) {
 }
 
 // highlight new items
-function highlightNewItem() {
-  return;
+function newHighlight(x, y, width) {
+  const proposedBlock = document.getElementById('highlight');
+  let sty = "width: " + width + "px; left: " + x + "px; top: " + y + "px; background: #f9f9f9; position: absolute";
+  proposedBlock.innerHTML = '<div style="'+sty+'" class="elem" id="highlighted-block"></div>';
+}
+
+function clearHighlight() {
+  const proposedBlock = document.getElementById('highlight');
+  proposedBlock.innerHTML = '';
 }
 
