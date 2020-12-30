@@ -52,7 +52,7 @@ class Draggable {
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
-    var colReturn = resolveCollision(item);
+    var colReturn = resolveCollision(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
     if(colReturn[0]){
       console.log("isCollide!")
 
@@ -77,8 +77,8 @@ class Draggable {
 /*** CREATE ELEMENTS ***/
 var elements = [];
 const root = document.getElementById('root');
-root.innerHTML = generateElements(100);
-mapElements(100);
+root.innerHTML = generateElements(1000);
+mapElements(1000);
 
 items.map((item) => {
   item.element.style.left = item.x;
@@ -153,13 +153,17 @@ function getItemByElement(element) {
 // Find item coliding with item/overlap
 // Check item overlap
 // item1 is item to check, item2 is moving element
-function collisionLeft(item1, item2) {
+function collisionLeft(item1, item2, newX, newY) {
   // if same item
   if(item1.element === item2.element) {
     //console.log("same item: ", i );
     return false;
   }
-  let boundItem = item2.element.getBoundingClientRect();
+  let boundItem = {
+    left: newX,
+    right: newX + item2.w,
+    y: newY,
+  }
   let r_offset = Math.round(item1.w / 3);
   let t_offset = Math.round(item1.h / 2);
   //console.log("id: ", item1.id);
@@ -169,10 +173,6 @@ function collisionLeft(item1, item2) {
   return ((item1.y + t_offset) > boundItem.y) 
     && (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
-}
-
-function sortByLeft(item1, item2) {
-  return item1.x - item2.x;
 }
 
 // idx1 is new idx of moving item/idx of colliding elem
@@ -220,14 +220,14 @@ function swapItem(list, idx1, idx2) {
 }
 
 // item1 is item checked, item2 is moving element
-function resolveCollision(item) {
+function resolveCollision(item, newX, newY) {
   let isCollide = false;
   //let prev_left = 0;
   let collisionIdx = -1;
   let itemIdx = -1;
 
   for(var i = 0;i < items.length; i++) {
-    if(collisionLeft(items[i], item)) {
+    if(collisionLeft(items[i], item, newX, newY)) {
       console.log("collision detected: ", i);
       isCollide = true;
       collisionIdx = i;
