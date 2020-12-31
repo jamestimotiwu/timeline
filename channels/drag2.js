@@ -264,9 +264,28 @@ function collisionHandler(item, newX, newY) {
   var colReturn = resolveCollision(chan, item, newX, newY);
   // If collision or new channel
   if(colReturn[0]){
-    newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
-    finalItem = applyPositionToItems(item, newItems);
-    chan.items = newItems;
+    if(item.chan_id === chan.id) {
+      newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
+      finalItem = applyPositionToItems(item, newItems);
+      chan.items = newItems;
+    } else {
+      // If chan.id is different than item.chan_id
+      // Remove from old channel
+      // Update chan id in item
+      // swapItem? With colReturn[2] as -1
+      colReturn[2] = getIndexOfItem(item.chan_id, item);
+      if(colReturn[2] != -1) {
+        // Remove item from previous channel?
+        let oldChan = getChannelById(item.chan_id);
+        newItems = removeItem(oldChan, colReturn[2], oldChan.y);
+        finalItem = applyPositionToItems(item, newItems);
+        oldChan.items = newItems;
+      }
+      item.chan_id = chan.id;
+      newItems = swapItem(chan.items, colReturn[1], -1, item, chan.y);
+      finalItem = applyPositionToItems(item, newItems);
+      chan.items = newItems;
+    }
   } 
   // if !colReturn[0] or oldChan != newChan
   else if(!checkSelf(item, newX, newY)) {
