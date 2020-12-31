@@ -1,6 +1,3 @@
-var items = [];
-var tempItems = [];
-
 class Draggable {
   constructor(dr,el) {
     this.el = el
@@ -57,22 +54,8 @@ class Draggable {
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
-    var colReturn = resolveCollision(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
-    if(colReturn[0]){
-      let newItems = swapItem(items, colReturn[1], colReturn[2], item);
-      this.finalItem = applyPositionToItems(item, newItems);
-    } else if(!checkSelf(item, e.pageX - this.shiftX, e.pageY - this.shiftY)) {
-      // Check if self outside and also no longer within bounds of item
-      // Remove item if no collision and leave bounds
-      //console.log("outside!");
-      if (colReturn[2] != -1) {
-        this.finalItem = applyPositionToItems(item, removeItem(items,colReturn[2]));
-        // Add to temp items because it was temporarily removed
-        tempItems.push(item);
-      }
-      this.finalItem.x = e.pageX - this.shiftX;
-      this.finalItem.y = e.pageY - this.shiftY;
-    }
+
+    collisionHandler(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
   }
 
   onMouseUp(e) {
@@ -89,6 +72,20 @@ class Draggable {
   }
 
 }
+
+/*
+ * Channels
+ *
+ * Each channel structure will maintain metadata on:
+ *  Items in channel
+ *  Channel id
+ *  Channel height
+ *  Channel top value
+*/
+var channels = [];
+var items = [];
+var tempItems = [];
+
 
 /*** CREATE ELEMENTS ***/
 var elements = [];
@@ -195,6 +192,26 @@ function checkSelf(item1, newX, newY) {
     newX + item1.w < item1.x ||
     newY > item1.y + item1.h ||
     newY + item1.h < item1.y);
+}
+
+// Handle element movement and identify/handle collisions 
+function collisionHandler(item, newX, newY) {
+  var colReturn = resolveCollision(item, newX, newY);
+  if(colReturn[0]){
+    let newItems = swapItem(items, colReturn[1], colReturn[2], item);
+    this.finalItem = applyPositionToItems(item, newItems);
+  } else if(!checkSelf(item, newX, newY)) {
+    // Check if self outside and also no longer within bounds of item
+    // Remove item if no collision and leave bounds
+    //console.log("outside!");
+    if (colReturn[2] != -1) {
+      this.finalItem = applyPositionToItems(item, removeItem(items,colReturn[2]));
+      // Add to temp items because it was temporarily removed
+      tempItems.push(item);
+    }
+    this.finalItem.x = newX;
+    this.finalItem.y = newY;
+  }
 }
 
 // idx1 is new idx for moving item/idx of colliding elem
