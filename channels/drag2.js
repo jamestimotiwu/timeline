@@ -54,8 +54,7 @@ class Draggable {
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
-
-    collisionHandler(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
+    this.finalItem = collisionHandler(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
   }
 
   onMouseUp(e) {
@@ -86,10 +85,9 @@ var channels = [];
 var items = [];
 var tempItems = [];
 
-
 /*** CREATE ELEMENTS ***/
 var elements = [];
-var numElements = 500
+var numElements = 10
 const root = document.getElementById('root');
 root.innerHTML = generateElements(numElements);
 mapElements(numElements);
@@ -99,6 +97,13 @@ items.map((item) => {
   item.element.style.top = item.y;
   item.element.style.position = 'absolute'
   item.element.style.zIndex = 999
+});
+
+channels.push({
+  items: items,
+  id: 0,
+  y: 4,
+  h: 50,
 });
 
 function generateElements(n) {
@@ -130,6 +135,7 @@ function mapElements(n) {
       h: rect.height,
       w: rect.width,
       id: id,
+      chan_id: 0,
     })
   }
 }
@@ -194,32 +200,122 @@ function checkSelf(item1, newX, newY) {
     newY + item1.h < item1.y);
 }
 
+// 1: channel
+// 2: object
+function checkChannel(y1, h1, y2, h2) {
+  return (y1 <= y2 + h2/2) &&
+    (y2 + h2/2 < y1 + h1);
+}
+
+// Get channel based on x, y, and height of object
+function getChannel(x, y, h) {
+  // temp for now, have channel id hierarchy
+  for(var i=0;i<channels.length;i++) {
+    if(checkChannel(channels[i].y, channels[i].h, y, h)){
+      return channels[i];
+    }
+  }
+  return null;
+}
+
+// Get channel by id
+function getChannelById(id) {
+  for(var i=0;i<channels.length;i++) {
+    if(channels[i].id === id){
+      //console.log("found chan ", chan)
+      return channels[i];
+    }
+  }
+  return null;
+}
+
 // Handle element movement and identify/handle collisions 
 function collisionHandler(item, newX, newY) {
-  var colReturn = resolveCollision(item, newX, newY);
+  // Check valid channel location based on newX/newY
+  let chan = getChannel(newX, newY, item.h);
+  let finalItem = item;
+  let newItems = null;
+
+  var colReturn = resolveCollision(chan, item, newX, newY);
   if(colReturn[0]){
-    let newItems = swapItem(items, colReturn[1], colReturn[2], item);
-    this.finalItem = applyPositionToItems(item, newItems);
+    newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
+    finalItem = applyPositionToItems(item, newItems);
+    chan.items = newItems;
   } else if(!checkSelf(item, newX, newY)) {
     // Check if self outside and also no longer within bounds of item
     // Remove item if no collision and leave bounds
-    //console.log("outside!");
-    if (colReturn[2] != -1) {
-      this.finalItem = applyPositionToItems(item, removeItem(items,colReturn[2]));
+    console.log("outside!");
+    // Check old array for old item
+    // If outside, remove from old channel
+    colReturn[2] = getIndexOfItem(item.chan_id, item);
+    if(colReturn[2] != -1) {
+      // Remove item from previous channel?
+      let oldChan = getChannelById(item.chan_id);
+      newItems = removeItem(oldChan, colReturn[2], oldChan.y);
+      finalItem = applyPositionToItems(item, newItems);
+      oldChan.items = newItems;
       // Add to temp items because it was temporarily removed
       tempItems.push(item);
     }
-    this.finalItem.x = newX;
-    this.finalItem.y = newY;
+    finalItem.x = newX;
+    finalItem.y = newY;
+  } /*else {
+    // Check if channel same
+    if(isSameChan(item.chan, chan.id)) {
+      let newItems = removeItem(chan.items, colReturn[2])
+      finalItem = applyPositionToItems(item, insertItem(newItems, item));
+      chan.items = newItems;
+      // if same channel why not just swap?
+    } else {
+      // Remove item from old channel, add to new
+      let oldChan = getChannelById(item.chan);
+      finalItem = applyPositionToItems(item, removeItem(oldChan.items,colReturn[2]));
+      oldChan.items = newItems;
+      tempItems.push(item);
+      finalItem = applyPositionToItems(item, insertItem(chan.item, item))
+      oldChan.items = newItems;
+    }
+    /*
+    finalItem.x = newX;
+    finalItem.y = newY;
+    }
+    */
+  return finalItem;
+}
+
+function insertItem(list, item) {
+  // iterate over list, find leftmost non overlap item
+  // insert item at x location as is
+  let newArr = [];
+  let prev_r = 0;
+  let seen = false;
+
+  for(var i=0;i<list.length;i++){
+    // front case
+    if(i===0 && item.x < list[i].x && !seen) {
+      newArr.push(item);
+      seen = true;
+    }
+    // middle case
+    if(!seen && prev_r < item.r) {
+      newArr.push(item);
+      seen = true;
+    }
+    prev_r = item.r;
+    newArr.push(list[i]);
   }
+  if(!seen) {
+    newArr.push(item);
+  }
+
+  return newArr
 }
 
 // idx1 is new idx for moving item/idx of colliding elem
 // idx2 is curr idx of moving item
-function swapItem(list, idx1, idx2, item) {
+function swapItem(list, idx1, idx2, item, y) {
   let newArr = [];
   let prev_left = 0;
-  let y = 4;
   let newItem1, newItem2 = null;
   newItem2 = Object.assign(item);
   newItem2.y = y;
@@ -230,12 +326,17 @@ function swapItem(list, idx1, idx2, item) {
     if(i === idx2) {
       continue;
     }
-    newItem1 = Object.assign(items[i])
+    newItem1 = Object.assign(list[i])
     newItem1.y = y;
 
     // Check ordering of items to determine rearrangement
-    // If idx2 <- -1, was removed so push everything to left
+    // If idx2 <- -1, was removed so push everything to right
     if(idx1 < idx2 || idx2 === -1) {
+      // Don't push to right if next item is not right enough 
+      if(prev_left < newItem1.x) {
+        prev_left = newItem1.r;
+        continue;
+      }
       // Push left
       if(i === idx1) {
         newItem2.x = prev_left
@@ -266,16 +367,15 @@ function swapItem(list, idx1, idx2, item) {
 }
 
 // Removes item from item list
-function removeItem(list, idx) {
+function removeItem(chan, idx, y) {
   let newArr = null;
-  let y = 4;
   let prev_left = 0;
   if(idx === -1) {
-    return list;
+    return chan.items;
   }
   //console.log("spliced!", idx)
-  list.splice(idx,1);
-  newArr = list;
+  newArr = Object.assign(chan.items);
+  newArr.splice(idx,1);
   for(var i=0;i<newArr.length;i++) {
     if(i===0){
       prev_left = newArr[i].x + 4 + newArr[i].w;
@@ -291,21 +391,24 @@ function removeItem(list, idx) {
 }
 
 // item1 is item checked, item2 is moving element
-function resolveCollision(item, newX, newY) {
+function resolveCollision(chan, item, newX, newY) {
   let isCollide = false;
   //let prev_left = 0;
   let collisionIdx = -1;
   let itemIdx = -1;
 
-  for(var i = 0;i < items.length; i++) {
-    if(checkCollision(items[i], item, newX, newY)) {
+  if(chan===null) {
+    return [false, -1, -1];
+  }
+  for(var i = 0;i < chan.items.length; i++) {
+    if(checkCollision(chan.items[i], item, newX, newY)) {
       console.log("collision detected: ", i);
       isCollide = true;
       collisionIdx = i;
     }
-    if(item.id === items[i].id) {
+    if(item.id === chan.items[i].id) {
       itemIdx = i;
-      console.log(checkSelf(item, newX, newY));
+      //console.log(checkSelf(item, newX, newY));
     }
   }
   /*
@@ -314,6 +417,15 @@ function resolveCollision(item, newX, newY) {
   }
   */
   return [isCollide, collisionIdx, itemIdx];
+}
+
+function getIndexOfItem(chan_id, item) {
+  for(var i=0;i < channels[chan_id].items.length; i++) {
+    if(item.id === channels[chan_id].items[i].id) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 // Apply item structure on elements
@@ -330,7 +442,6 @@ function applyPositionToItems(item, newItems) {
     newItems[i].element.style.left = newItems[i].x;
     newItems[i].element.style.top = newItems[i].y;
   }
-  items = newItems;
   return Object.assign(finalItem);
 }
 
