@@ -180,13 +180,16 @@ function checkCollision(item1, item2, newX, newY) {
     y: newY,
   }
   const r_offset = Math.round(item1.w / 3);
-  const t_offset = Math.round(item1.h / 2);
+  const t_offset = Math.round(item1.h / 3);
   //console.log("id: ", item1.id);
   //console.log("moving: ", boundItem.right);
   //console.log("static: ", item1.r);
-
+  /*
   return ((item1.y + t_offset) > boundItem.y) 
     && (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
+    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
+    */
+  return (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
 }
 
