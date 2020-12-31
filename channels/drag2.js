@@ -191,7 +191,7 @@ function getItemByElement(element) {
 // Find item coliding with item/overlap
 // Check item overlap
 // item1 is item to check, item2 is moving element
-function checkCollision(item1, item2, newX, newY) {
+function checkSnapCollision(item1, item2, newX, newY) {
   // if same item
   if(item1.element === item2.element) {
     //console.log("same item: ", item1.i );
@@ -224,6 +224,13 @@ function checkSelf(item1, newX, newY) {
     newX + item1.w < item1.x ||
     newY > item1.y + item1.h ||
     newY + item1.h < item1.y);
+}
+
+function checkCollision(x1, y1, w1, h1, x2, y2, w2, h2) {
+  return !(x2 > x1 + w1 ||
+    x2 + w2 < x1 ||
+    y2 > y1 + h1 ||
+    y2 + h2 < y1);
 }
 
 // 1: channel
@@ -261,42 +268,68 @@ function collisionHandler(item, newX, newY) {
   let chan = getChannel(newX, newY, item.h);
   let finalItem = item;
   let newItems = null;
+  // Add state: isCollision and isSwap
   var colReturn = resolveCollision(chan, item, newX, newY);
   // If collision or new channel
-  if(colReturn[0]){
+  if(colReturn[1]){
     if (item.chan_id != chan.id) {
       // If chan.id is different than item.chan_id
       // Remove from old channel
       // Update chan id in item
       // swapItem? With colReturn[2] as -1
-      colReturn[2] = getIndexOfItem(item.chan_id, item);
-      if(colReturn[2] != -1) {
+      colReturn[3] = getIndexOfItem(item.chan_id, item);
+      if(colReturn[3] != -1) {
         // Remove item from previous channel?
         let oldChan = getChannelById(item.chan_id);
-        newItems = removeItem(oldChan, colReturn[2], oldChan.y);
+        newItems = removeItem(oldChan, colReturn[3], oldChan.y);
         finalItem = applyPositionToItems(item, newItems);
         oldChan.items = newItems;
       }
       item.chan_id = chan.id;
-      colReturn[2] = -1;
+      colReturn[3] = -1;
     }
-    newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
+    newItems = swapItem(chan.items, colReturn[2], colReturn[3], item, chan.y);
     finalItem = applyPositionToItems(item, newItems);
     chan.items = newItems;
-  } 
-  // If channels are not the same and no collisions
-  // if !colReturn[0] or oldChan != newChan
-  else if(!checkSelf(item, newX, newY)) {
+    return finalItem;
+  }
+  /*
+  if (item.chan_id != chan.id) {
+    // If channels are not the same and no collisions
+    // Insert once, if element is already in the correct channel (e.g. itemIdx != -1), just adjust xpos of item in channel 
+    // if !colReturn[0] or oldChan != newChan
+    colReturn[3] = getIndexOfItem(item.chan_id, item);
+    if(colReturn[3] != -1) {
+      // Remove item from previous channel?
+      let oldChan = getChannelById(item.chan_id);
+      newItems = removeItem(oldChan, colReturn[3], oldChan.y);
+      finalItem = applyPositionToItems(item, newItems);
+      oldChan.items = newItems;
+    }
+    newItems = insertItem(chan, item, chan.y);
+    finalItem = applyPositionToItems(item, newItems);
+    chan.items = newItems;
+    return finalItem;
+  }
+  if(!colReturn[0]) {
+    //colReturn[2] = getIndexOfItem(item.chan_id, item);
+    // Just adjust xpos
+    chan.items[colReturn[3]].x = newX;
+    finalItem = chan.items[colReturn[3]]
+    newHighlight(finalItem.x, finalItem.y, finalItem.w);
+    return finalItem;
+  }*/
+  if(!checkSelf(item, newX, newY)) {
     // Check if self outside and also no longer within bounds of item
     // Remove item if no collision and leave bounds
     console.log("outside!");
     // Check old array for old item
     // If outside, remove from old channel
-    colReturn[2] = getIndexOfItem(item.chan_id, item);
-    if(colReturn[2] != -1) {
+    colReturn[3] = getIndexOfItem(item.chan_id, item);
+    if(colReturn[3] != -1) {
       // Remove item from previous channel?
       let oldChan = getChannelById(item.chan_id);
-      newItems = removeItem(oldChan, colReturn[2], oldChan.y);
+      newItems = removeItem(oldChan, colReturn[3], oldChan.y);
       finalItem = applyPositionToItems(item, newItems);
       oldChan.items = newItems;
       // Add to temp items because it was temporarily removed
@@ -304,20 +337,22 @@ function collisionHandler(item, newX, newY) {
     }
     finalItem.x = newX;
     finalItem.y = newY;
+    return finalItem;
   } 
   return finalItem;
 }
 
-function insertItem(list, item) {
+function insertItem(chan, item, y) {
   // iterate over list, find leftmost non overlap item
   // insert item at x location as is
   let newArr = [];
   let prev_r = 0;
   let seen = false;
-
-  for(var i=0;i<list.length;i++){
+  item.y = y;
+  item.chan_id = chan.id;
+  for(var i=0;i<chan.items.length;i++){
     // front case
-    if(i===0 && item.x < list[i].x && !seen) {
+    if(i===0 && item.x < chan.items[i].x && !seen) {
       newArr.push(item);
       seen = true;
     }
@@ -327,7 +362,7 @@ function insertItem(list, item) {
       seen = true;
     }
     prev_r = item.r;
-    newArr.push(list[i]);
+    newArr.push(chan.items[i]);
   }
   if(!seen) {
     newArr.push(item);
@@ -418,6 +453,7 @@ function removeItem(chan, idx, y) {
 // item1 is item checked, item2 is moving element
 function resolveCollision(chan, item, newX, newY) {
   let isCollide = false;
+  let doSnap = false;
   //let prev_left = 0;
   let collisionIdx = -1;
   let itemIdx = -1;
@@ -426,17 +462,21 @@ function resolveCollision(chan, item, newX, newY) {
     return [false, -1, -1];
   }
   for(var i = 0;i < chan.items.length; i++) {
-    if(checkCollision(chan.items[i], item, newX, newY)) {
-      console.log("collision detected: ", i);
+    /*
+    if(chan.items[i].element != item.element && checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
       isCollide = true;
+    }*/
+    if(checkSnapCollision(chan.items[i], item, newX, newY)) {
       collisionIdx = i;
+      doSnap = true;
+      console.log("snap collision detected: ", i);
     }
     if(item.id === chan.items[i].id) {
       itemIdx = i;
       //console.log(checkSelf(item, newX, newY));
     }
   }
-  return [isCollide, collisionIdx, itemIdx];
+  return [isCollide, doSnap, collisionIdx, itemIdx];
 }
 
 function getIndexOfItem(chan_id, item) {
