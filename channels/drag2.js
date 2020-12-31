@@ -91,11 +91,11 @@ var elements = [];
 var numElements = 10
 const root = document.getElementById('root');
 root.innerHTML = generateElements(0,numElements);
-items = mapElements(0, numElements, 0);
+items = mapElements(0, numElements, 0, 4);
 
 items.map((item) => {
   item.element.style.left = item.x;
-  item.element.style.top = item.y;
+  item.element.style.top = 4;
   item.element.style.position = 'absolute'
   item.element.style.zIndex = 999
 });
@@ -108,7 +108,7 @@ channels.push({
 });
 
 root.insertAdjacentHTML('beforeend', generateElements(numElements, numElements + 3));
-let items2 = mapElements(numElements, numElements + 3, 1);
+let items2 = mapElements(numElements, numElements + 3, 1, 58);
 items2.map((item) => {
   item.element.style.left = item.x;
   item.element.style.top = 58;
@@ -135,7 +135,7 @@ function generateElements(start, n) {
   return html;
 }
 
-function mapElements(start, n, chan_id) {
+function mapElements(start, n, chan_id, y) {
   let newItems =[];
   for(var i=start;i<n;i++) {
     let id = "element" + i;
@@ -149,7 +149,7 @@ function mapElements(start, n, chan_id) {
     newItems.push({
       element: elem,
       x: rect.left,
-      y: rect.top,
+      y: y,
       r: rect.right,
       h: rect.height,
       w: rect.width,
@@ -264,11 +264,7 @@ function collisionHandler(item, newX, newY) {
   var colReturn = resolveCollision(chan, item, newX, newY);
   // If collision or new channel
   if(colReturn[0]){
-    if(item.chan_id === chan.id) {
-      newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
-      finalItem = applyPositionToItems(item, newItems);
-      chan.items = newItems;
-    } else {
+    if (item.chan_id != chan.id) {
       // If chan.id is different than item.chan_id
       // Remove from old channel
       // Update chan id in item
@@ -282,11 +278,13 @@ function collisionHandler(item, newX, newY) {
         oldChan.items = newItems;
       }
       item.chan_id = chan.id;
-      newItems = swapItem(chan.items, colReturn[1], -1, item, chan.y);
-      finalItem = applyPositionToItems(item, newItems);
-      chan.items = newItems;
+      colReturn[2] = -1;
     }
+    newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
+    finalItem = applyPositionToItems(item, newItems);
+    chan.items = newItems;
   } 
+  // If channels are not the same and no collisions
   // if !colReturn[0] or oldChan != newChan
   else if(!checkSelf(item, newX, newY)) {
     // Check if self outside and also no longer within bounds of item
@@ -306,30 +304,7 @@ function collisionHandler(item, newX, newY) {
     }
     finalItem.x = newX;
     finalItem.y = newY;
-  } /*else {
-    // 1. Flush stale item object
-    // Add new item object in new channel of newX/newY
-
-    // Check if channel same
-    if(isSameChan(item.chan, chan.id)) {
-      let newItems = removeItem(chan.items, colReturn[2])
-      finalItem = applyPositionToItems(item, insertItem(newItems, item));
-      chan.items = newItems;
-      // if same channel why not just swap?
-    } else {
-      // Remove item from old channel, add to new
-      let oldChan = getChannelById(item.chan);
-      finalItem = applyPositionToItems(item, removeItem(oldChan.items,colReturn[2]));
-      oldChan.items = newItems;
-      tempItems.push(item);
-      finalItem = applyPositionToItems(item, insertItem(chan.item, item))
-      oldChan.items = newItems;
-    }
-    /*
-    finalItem.x = newX;
-    finalItem.y = newY;
-    }
-    */
+  } 
   return finalItem;
 }
 
