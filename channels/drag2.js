@@ -20,6 +20,7 @@ class Draggable {
   }
 
   onMouseDown(e) {
+    console.log("mouse down");
     this.getDragPointer(e.clientX, e.clientY)
     this.prepareElement()
     this.moveElementTo(e.pageX, e.pageY)
@@ -89,8 +90,8 @@ var tempItems = [];
 var elements = [];
 var numElements = 10
 const root = document.getElementById('root');
-root.innerHTML = generateElements(numElements);
-mapElements(numElements);
+root.innerHTML = generateElements(0,numElements);
+items = mapElements(0, numElements, 0);
 
 items.map((item) => {
   item.element.style.left = item.x;
@@ -106,9 +107,25 @@ channels.push({
   h: 50,
 });
 
-function generateElements(n) {
+root.insertAdjacentHTML('beforeend', generateElements(numElements, numElements + 3));
+let items2 = mapElements(numElements, numElements + 3, 1);
+items2.map((item) => {
+  item.element.style.left = item.x;
+  item.element.style.top = 58;
+  item.element.style.position = 'absolute'
+  item.element.style.zIndex = 999
+});
+
+channels.push({
+  items: items2,
+  id: 1,
+  y: 58,
+  h: 50,
+});
+
+function generateElements(start, n) {
   let html = '';
-  for(var i=0;i<n;i++) {
+  for(var i=start;i<n;i++) {
     // random width
     // random background color
     // unique id as name
@@ -118,16 +135,18 @@ function generateElements(n) {
   return html;
 }
 
-function mapElements(n) {
-  for(var i=0;i<n;i++) {
+function mapElements(start, n, chan_id) {
+  let newItems =[];
+  for(var i=start;i<n;i++) {
     let id = "element" + i;
     let elem = document.getElementById(id);
     elem.style.width = 100 + (Math.floor(Math.random() * Math.floor(150-100)));
     elem.style.background = randomColor();
 
+    console.log("new draggable for ", id);
     new Draggable(elem, elem);
     let rect = elem.getBoundingClientRect();
-    items.push({
+    newItems.push({
       element: elem,
       x: rect.left,
       y: rect.top,
@@ -135,9 +154,10 @@ function mapElements(n) {
       h: rect.height,
       w: rect.width,
       id: id,
-      chan_id: 0,
+      chan_id: chan_id,
     })
   }
+  return newItems;
 }
 
 function randomColor() {
@@ -150,9 +170,12 @@ function randomColor() {
 }
 
 function getItemByElement(element) {
-  for(var i=0;i<items.length;i++) {
-    if(element === items[i].element) {
-      return items[i];
+  // iterate over all channels
+  for(var j=0;j<channels.length;j++) {
+    for(var i=0;i<channels[j].items.length;i++) {
+      if(element === channels[j].items[i].element) {
+        return channels[j].items[i];
+      }
     }
   }
   // Check temp items if can't find item
@@ -238,13 +261,15 @@ function collisionHandler(item, newX, newY) {
   let chan = getChannel(newX, newY, item.h);
   let finalItem = item;
   let newItems = null;
-
   var colReturn = resolveCollision(chan, item, newX, newY);
+  // If collision or new channel
   if(colReturn[0]){
     newItems = swapItem(chan.items, colReturn[1], colReturn[2], item, chan.y);
     finalItem = applyPositionToItems(item, newItems);
     chan.items = newItems;
-  } else if(!checkSelf(item, newX, newY)) {
+  } 
+  // if !colReturn[0] or oldChan != newChan
+  else if(!checkSelf(item, newX, newY)) {
     // Check if self outside and also no longer within bounds of item
     // Remove item if no collision and leave bounds
     console.log("outside!");
@@ -263,6 +288,9 @@ function collisionHandler(item, newX, newY) {
     finalItem.x = newX;
     finalItem.y = newY;
   } /*else {
+    // 1. Flush stale item object
+    // Add new item object in new channel of newX/newY
+
     // Check if channel same
     if(isSameChan(item.chan, chan.id)) {
       let newItems = removeItem(chan.items, colReturn[2])
@@ -414,11 +442,6 @@ function resolveCollision(chan, item, newX, newY) {
       //console.log(checkSelf(item, newX, newY));
     }
   }
-  /*
-  if (isCollide) {
-    console.log("col_idx: ", collisionIdx," item_idx: ", itemIdx);
-  }
-  */
   return [isCollide, collisionIdx, itemIdx];
 }
 
@@ -445,13 +468,14 @@ function applyPositionToItems(item, newItems) {
     newItems[i].element.style.left = newItems[i].x;
     newItems[i].element.style.top = newItems[i].y;
   }
+  console.log(channels)
   return Object.assign(finalItem);
 }
 
 // highlight new items
 function newHighlight(x, y, width) {
   const proposedBlock = document.getElementById('highlight');
-  let sty = "width: " + width + "px; left: " + x + "px; top: " + y + "px; background: #f9f9f9; position: absolute";
+  let sty = "width: " + width + "px; left: " + x + "px; top: " + y + "px; background: #f6f6f6; position: absolute";
   proposedBlock.innerHTML = '<div style="'+sty+'" class="elem" id="highlighted-block"></div>';
 }
 
