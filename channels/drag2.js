@@ -64,7 +64,7 @@ class Draggable {
     } else if(!checkSelf(item, e.pageX - this.shiftX, e.pageY - this.shiftY)) {
       // Check if self outside and also no longer within bounds of item
       // Remove item if no collision and leave bounds
-      console.log("outside!");
+      //console.log("outside!");
       if (colReturn[2] != -1) {
         this.finalItem = applyPositionToItems(item, removeItem(items,colReturn[2]));
         // Add to temp items because it was temporarily removed
@@ -92,9 +92,10 @@ class Draggable {
 
 /*** CREATE ELEMENTS ***/
 var elements = [];
+var numElements = 500
 const root = document.getElementById('root');
-root.innerHTML = generateElements(10);
-mapElements(10);
+root.innerHTML = generateElements(numElements);
+mapElements(numElements);
 
 items.map((item) => {
   item.element.style.left = item.x;
@@ -154,7 +155,7 @@ function getItemByElement(element) {
   // Check temp items if can't find item
   for(var i=0;i<tempItems.length;i++){
     if(element === tempItems[i].element) {
-      console.log("found temp");
+      //console.log("found temp");
       return tempItems[i];
     }
   }
@@ -167,9 +168,6 @@ function getItemByElement(element) {
 function checkCollision(item1, item2, newX, newY) {
   // if same item
   if(item1.element === item2.element) {
-    // If same item check if still within bounds
-    // If not remove from list
-    // Alternatively, do this only if collision is not found yet it escaped from bounds
     //console.log("same item: ", item1.i );
     return false;
   }
@@ -189,6 +187,9 @@ function checkCollision(item1, item2, newX, newY) {
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
 }
 
+// If same item check if still within bounds
+// If not remove from list
+// Alternatively, do this only if collision is not found yet it escaped from bounds
 function checkSelf(item1, newX, newY) {
   return !(newX > item1.x + item1.w ||
     newX + item1.w < item1.x ||
