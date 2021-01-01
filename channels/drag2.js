@@ -317,6 +317,7 @@ function collisionHandler(item, newX, newY) {
   if(!colReturn[3]) {
     // Just adjust x pos
     chan.items[colReturn[2]].x = newX;
+    chan.items[colReturn[2]].r = newX + chan.items[colReturn[2]].w;
     finalItem = chan.items[colReturn[2]];
     newHighlight(finalItem.x, finalItem.y, finalItem.w);
     return finalItem;
@@ -448,23 +449,33 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
 
 // Removes item from item list
 function removeItem(chan, idx, y) {
-  let newArr = null;
+  let newArr = [];
   let prev_left = 0;
+  let newItem = null;
   if(idx === -1) {
     return chan.items;
   }
   //console.log("spliced!", idx)
   newArr = Object.assign(chan.items);
-  newArr.splice(idx,1);
-  for(var i=0;i<newArr.length;i++) {
-    if(i===0){
-      prev_left = newArr[i].x + 4 + newArr[i].w;
-    } else {
+  // If idx === 0 -> shift
+  if(idx===0) {
+    newArr.shift();
+    return newArr;
+  }
+  // If idx === chan.items.length - 1 -> pop
+  else if(idx===chan.items.length-1) {
+    newArr.pop();
+    return newArr;
+  } else if (0 < idx && idx < chan.items.length) {
+    prev_left = newArr[idx].x;
+    newArr.splice(idx,1);
+    for(var i=idx;i<newArr.length;i++) {
       newArr[i].x = prev_left;
       newArr[i].r = prev_left + 4 + newArr[i].w;
-      prev_left = newArr[i].r
+      prev_left = newArr[i].r;
       newArr[i].y = y;
     }
+    return newArr;
   }
   //console.log(newArr);
   return newArr;
