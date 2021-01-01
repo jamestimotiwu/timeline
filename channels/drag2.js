@@ -123,6 +123,13 @@ channels.push({
   h: 50,
 });
 
+channels.push({
+  items: [],
+  id: 2,
+  y: 112,
+  h: 50,
+});
+
 function generateElements(start, n) {
   let html = '';
   for(var i=start;i<n;i++) {
@@ -228,7 +235,7 @@ function checkSelf(item1, newX, newY) {
 
 function checkCollision(x1, y1, w1, h1,  x2, y2, w2, h2) {
   return !(x2 > x1 + w1 + 4 ||
-    x2 + w2 + 4 < x1 ||
+    x2 + w2 + 4< x1 ||
     y2 > y1 + h1 ||
     y2 + h2 < y1);
 }
@@ -291,7 +298,7 @@ function collisionHandler(item, newX, newY) {
     chan.items = newItems;
     return finalItem;
   } 
-  if(!colReturn[3] && item.chan_id != chan.id) {
+  if(!colReturn[3] && chan.id != null && item.chan_id != chan.id) {
     console.log("item inserted");
     colReturn[2] = getIndexOfItem(item.chan_id, item);
     if(colReturn[2] != -1) {
@@ -299,6 +306,7 @@ function collisionHandler(item, newX, newY) {
       newItems = removeItem(oldChan, colReturn[2], oldChan.y);
       finalItem = applyPositionToItems(item, newItems);
       oldChan.items = newItems;
+      tempItems.push(item);
     }
     newItems = insertItem(chan, item, newX, chan.y);
     console.log("insert: ", newItems)
@@ -338,7 +346,7 @@ function collisionHandler(item, newX, newY) {
   return finalItem;
 }
 
-// Binary search impl
+// Insert item for cases where item is not in collision state
 function insertItem(chan, item, newX, newY) {
   let l = 0;
   let r = chan.items.length-1;
@@ -351,12 +359,6 @@ function insertItem(chan, item, newX, newY) {
   // Greatest interval start less than new interval start
   while(l <= r) {
     mid = l + Math.floor((r-l)/2);
-    // Middle case
-    /*
-    if(chan.items[mid].x === newX) {
-      //return mid;
-      newArr.splice(mid+1, 0, newItem);
-      return newArr;*/
     if (chan.items[mid].x < newX){
       l = mid + 1;
     } else {
@@ -378,24 +380,24 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
   newItem2 = Object.assign(item);
   newItem2.y = y;
   newItem2.chan_id = chan_id;
-  for(var i = 0; i < list.length; i++) {
-    if(i === 0) {
-      prev_left = list[0].x;
-    }
-    if(i === idx2) {
-      continue;
-    }
-    newItem1 = Object.assign(list[i])
-    newItem1.y = y;
-    newItem1.chan_id = chan_id;
-
-    // Check ordering of items to determine rearrangement
-    // If idx2 <- -1, was removed so push everything to right
-    if(idx1 < idx2 || idx2 === -1) {
-      // Don't push to right if next item is not right enough 
-      if(prev_left < newItem1.x) {
-        prev_left = newItem1.r;
+  // Check ordering of items to determine rearrangement
+  // If idx2 <- -1, was removed so push everything to right
+  if(idx1 < idx2 || idx2 === -1) {
+    for(var i = 0; i < list.length; i++) {
+      if(i === 0) {
+        prev_left = list[0].x;
+      }
+      if(i === idx2) {
         continue;
+      }
+      newItem1 = Object.assign(list[i])
+      newItem1.y = y;
+      newItem1.chan_id = chan_id;
+
+      // Don't push to right if next item is not right enough 
+      // To localize item swapping
+      if(prev_left + 4 < newItem1.x) {
+        prev_left = newItem1.x;
       }
       // Push left
       if(i === idx1) {
@@ -408,18 +410,36 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
       newItem1.r = prev_left + 4 + newItem1.w;
       prev_left = newItem1.r;
       newArr.push(newItem1);
-    } else {
-      // Push right
-      newItem1.x = prev_left
-      newItem1.r = prev_left + 4 + newItem1.w;
-      prev_left = newItem1.r;
-      newArr.push(newItem1);
-      if(i === idx1) {
-        newItem2.x = prev_left
-        newItem2.r = prev_left + 4 + newItem2.w;
-        prev_left = newItem2.r;
-        newArr.push(newItem2);
+    }
+  }
+  else {
+    // Check in reverse
+    console.log("check in reverse");
+    for(var i = list.length-1; i >= 0; i--) {
+      if(i === list.length-1) {
+        prev_left = list[i].x + 4 + list[i].w;
       }
+      if(i === idx2) {
+        continue;
+      }
+      newItem1 = Object.assign(list[i])
+      newItem1.y = y;
+      newItem1.chan_id = chan_id;
+
+      if(prev_left > newItem1.r + 4) {
+        prev_left = newItem1.r;
+      }
+      // Push right and if overlapping with second item
+      if(i === idx1) {
+        newItem2.x = prev_left - 4 - newItem2.w;
+        newItem2.r = prev_left;
+        prev_left = newItem2.x;
+        newArr.unshift(newItem2);
+      }
+      newItem1.x = prev_left - 4 - newItem1.w;
+      newItem1.r = prev_left;
+      prev_left = newItem1.x;
+      newArr.unshift(newItem1);
     }
   }
   //console.log("new: ",newArr.length);
@@ -496,7 +516,7 @@ function applyPositionToItems(item, newItems) {
   for(var i=0;i < newItems.length; i++) {
     if(item.element === newItems[i].element){
       finalItem = newItems[i];
-      newHighlight(newItems[i].x, newItems[i].y, newItems[i].w);
+      newHighlight(newItems[i].x, newItems[i].y, newItems[i].h, newItems[i].w);
       continue;
     }
     newItems[i].element.style.left = newItems[i].x;
@@ -507,9 +527,9 @@ function applyPositionToItems(item, newItems) {
 }
 
 // highlight new items
-function newHighlight(x, y, width) {
+function newHighlight(x, y, height, width) {
   const proposedBlock = document.getElementById('highlight');
-  let sty = "width: " + width + "px; left: " + x + "px; top: " + y + "px; background: #f6f6f6; position: absolute";
+  let sty = "width: " + width + "px; left: " + x + "px; top: " + y + "px; border: 2px solid #a6a6f6; background: none; position: absolute";
   proposedBlock.innerHTML = '<div style="'+sty+'" class="elem" id="highlighted-block"></div>';
 }
 
