@@ -1,4 +1,3 @@
-var invert = false;
 
 class Draggable {
   constructor(dr,el) {
@@ -22,8 +21,7 @@ class Draggable {
   }
 
   onMouseDown(e) {
-    console.log("mouse down");
-    invert = false;
+    //console.log("mouse down");
     this.getDragPointer(e.clientX, e.clientY)
     this.prepareElement()
     this.moveElementTo(e.pageX, e.pageY)
@@ -230,6 +228,15 @@ function checkSwapCollision(item1, item2, mouseX, mouseY, threshold) { // invert
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));*/
 }
 
+function checkSnapCollision(item1, item2, newX, threshold) {
+  if(item1.element === item2.element) {
+    //console.log("same item: ", item1.i );
+    return 0;
+  }
+
+  return (item1.x + item1.w < newX && newX < item1.x + item1.w + threshold);
+}
+
 // If same item check if still within bounds
 // If not remove from list
 // Alternatively, do this only if collision is not found yet it escaped from bounds
@@ -285,10 +292,9 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
   let finalItem = item;
   let newItems = null;
   var colReturn = resolveCollision(chan, item, newX, newY, mouseX, mouseY);
-  // If collision or new channel
   // If collision on left part of item, and item is on the right, try to move, vice versa
   // Handle when moving item is outside of container
-  console.log(colReturn[0]);
+  //console.log(colReturn[0]);
   if(colReturn[0] != 0 &&
     (((colReturn[0] === -1 && colReturn[1] < colReturn[2]) ||
     (colReturn[0] === 1 && colReturn[1] > colReturn[2])) ||
@@ -332,8 +338,17 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
   }
   if(!colReturn[3] && chan != null) {
     // Just adjust x pos
+    // Check if snappable first
+    if(colReturn[4] != -1) {
+      // Hackishly snap into corner
+      chan.items[colReturn[2]].x = chan.items[colReturn[4]].r;
+      chan.items[colReturn[2]].r = chan.items[colReturn[2]].x + chan.items[colReturn[2]].w + 4;
+      finalItem = chan.items[colReturn[2]];
+      newHighlight(finalItem.x, finalItem.y, finalItem.h, finalItem.w);
+      return finalItem;
+    }
     chan.items[colReturn[2]].x = newX;
-    chan.items[colReturn[2]].r = newX + chan.items[colReturn[2]].w;
+    chan.items[colReturn[2]].r = newX + chan.items[colReturn[2]].w + 4;
     finalItem = chan.items[colReturn[2]];
     newHighlight(finalItem.x, finalItem.y, finalItem.h, finalItem.w);
     return finalItem;
@@ -503,8 +518,9 @@ function resolveCollision(chan, item, newX, newY, mouseX, mouseY) {
   //let prev_left = 0;
   let collisionIdx = -1;
   let itemIdx = -1;
+  let snapIdx = -1;
 
-  if(chan===null) return [swapDirection, collisionIdx, itemIdx, isCollide];
+  if(chan===null) return [swapDirection, collisionIdx, itemIdx, isCollide, snapIdx];
   for(var i = 0;i < chan.items.length; i++) {
     if(chan.items[i].element != item.element &&
       checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
@@ -522,8 +538,11 @@ function resolveCollision(chan, item, newX, newY, mouseX, mouseY) {
       itemIdx = i;
       //console.log(checkSelf(item, newX, newY));
     }
+    if(checkSnapCollision(chan.items[i], item, newX, item.w/3)) {
+      snapIdx = i;
+    }
   }
-  return [swapDirection, collisionIdx, itemIdx, isCollide];
+  return [swapDirection, collisionIdx, itemIdx, isCollide, snapIdx];
 }
 
 function getIndexOfItem(chan_id, item) {
