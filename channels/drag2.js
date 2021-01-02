@@ -202,31 +202,7 @@ function getItemByElement(element) {
 // Find item coliding with item/overlap
 // Check item overlap
 // item1 is item to check, item2 is moving element
-function checkSwapCollision(item1, item2, newX, newY) {
-  // if same item
-  if(item1.element === item2.element) {
-    //console.log("same item: ", item1.i );
-    return false;
-  }
-  const boundItem = {
-    left: newX,
-    right: newX + item2.w,
-    y: newY,
-  }
-  const r_offset = Math.round(item1.w / 3);
-  const t_offset = Math.round(item1.h / 3);
-  //console.log("id: ", item1.id);
-  //console.log("moving: ", boundItem.right);
-  //console.log("static: ", item1.r);
-  /*
-  return ((item1.y + t_offset) > boundItem.y) 
-    && (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
-    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));*/
-  return (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
-    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
-}
-
-function checkSwapCollision2(item1, item2, mouseX, mouseY, threshold) { // invert, threshold) {
+function checkSwapCollision(item1, item2, mouseX, mouseY, threshold) { // invert, threshold) {
   if(item1.element === item2.element) {
     //console.log("same item: ", item1.i );
     return 0;
@@ -246,6 +222,12 @@ function checkSwapCollision2(item1, item2, mouseX, mouseY, threshold) { // inver
     direction = 1;
   }
   return direction;
+  /*
+  return ((item1.y + t_offset) > boundItem.y) 
+    && (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
+    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
+  return (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
+    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));*/
 }
 
 // If same item check if still within bounds
@@ -303,7 +285,6 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
   let finalItem = item;
   let newItems = null;
   var colReturn = resolveCollision(chan, item, newX, newY, mouseX, mouseY);
-  console.log(colReturn);
   // If collision or new channel
   // If collision on left part of item, and item is on the right, try to move, vice versa
   // Handle when moving item is outside of container
@@ -528,19 +509,12 @@ function resolveCollision(chan, item, newX, newY, mouseX, mouseY) {
     if(chan.items[i].element != item.element &&
       checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
       isCollide = true;
-      /*
-      if(checkSwapCollision(chan.items[i], item, newX, newY)) {
-      //if(checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 0.5)) {
-        console.log("collision detected: ", i);
-        isSwap = true;
-        collisionIdx = i;
-      }*/
     }
     if(!isSwap) {
-      swapDirection = checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 1);
+      swapDirection = checkSwapCollision(chan.items[i], item, mouseX, mouseY, 1);
     }
     if(!isSwap && swapDirection != 0) {
-      console.log("collision detected: ", i);
+      //console.log("collision detected: ", i);
       isSwap = true;
       collisionIdx = i;
     }
