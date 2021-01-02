@@ -229,12 +229,11 @@ function checkSwapCollision(item1, item2, newX, newY) {
 function checkSwapCollision2(item1, item2, mouseX, mouseY, threshold) { // invert, threshold) {
   if(item1.element === item2.element) {
     //console.log("same item: ", item1.i );
-    return false;
+    return 0;
   }
   // Check x and r at newX positions
   const floatItem = {
     x: mouseX,
-    r: mouseX + item2.w,
     y: mouseY,
   }
   let direction = 0;
@@ -243,7 +242,7 @@ function checkSwapCollision2(item1, item2, mouseX, mouseY, threshold) { // inver
     direction = -1;
   }
   // +1, move moving item right
-  if(item1.r > floatItem.x && floatItem.x > (item1.r - (item1.w * threshold/2))) {
+  if(item1.x + item1.w > floatItem.x && floatItem.x > (item1.x + item1.w - (item1.w * threshold/2))) {
     direction = 1;
   }
   return direction;
@@ -304,8 +303,15 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
   let finalItem = item;
   let newItems = null;
   var colReturn = resolveCollision(chan, item, newX, newY, mouseX, mouseY);
+  console.log(colReturn);
   // If collision or new channel
-  if(colReturn[0]){
+  // If collision on left part of item, and item is on the right, try to move, vice versa
+  // Handle when moving item is outside of container
+  if(chan != null && colReturn[0] != 0 &&
+    ((colReturn[0] === -1 && colReturn[1] < colReturn[2]) ||
+    (colReturn[0] === 1 && colReturn[1] > colReturn[2])) ||
+    (colReturn[2] === -1)
+  ){
     if (item.chan_id != chan.id) {
       // If chan.id is different than item.chan_id
       // Remove from old channel
@@ -313,6 +319,7 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
       // swapItem? With colReturn[2] as -1
       colReturn[2] = getIndexOfItem(item.chan_id, item);
       if(colReturn[2] != -1) {
+        // Different chan id, remove
         // Remove item from previous channel?
         let oldChan = getChannelById(item.chan_id);
         newItems = removeItem(oldChan, colReturn[2], oldChan.y);
@@ -321,7 +328,7 @@ function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
       }
       colReturn[2] = -1;
     }
-    newItems = swapItem(chan.id, chan.items, colReturn[1], colReturn[2], item, chan.y);
+    newItems = swapItem(chan.id, chan.items, colReturn[1], colReturn[2], item, chan.y, colReturn[0]);
     finalItem = applyPositionToItems(item, newItems);
     chan.items = newItems;
     return finalItem;
@@ -403,7 +410,7 @@ function insertItem(chan, item, newX, newY) {
 
 // idx1 is new idx for moving item/idx of colliding elem
 // idx2 is curr idx of moving item
-function swapItem(chan_id ,list, idx1, idx2, item, y) {
+function swapItem(chan_id ,list, idx1, idx2, item, y, direction) {
   let newArr = [];
   let prev_left = 0;
   let newItem1, newItem2 = null;
@@ -412,16 +419,16 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
   newItem2.chan_id = chan_id;
   // Check ordering of items to determine rearrangement
   // If idx2 <- -1, was removed so push everything to right
-  if(idx1 < idx2 || idx2 === -1) {
-    for(var i = 0; i < list.length; i++) {
-      if(i === 0) {
-        prev_left = list[0].x;
-      }
-      if(i === idx2) continue;
-      newItem1 = Object.assign(list[i])
-      newItem1.y = y;
-      newItem1.chan_id = chan_id;
+  for(var i = 0; i < list.length; i++) {
+    if(i === 0) {
+      prev_left = list[0].x;
+    }
+    if(i === idx2) continue;
+    newItem1 = Object.assign(list[i])
+    newItem1.y = y;
+    newItem1.chan_id = chan_id;
 
+    if(idx1 < idx2 || (idx2 === -1 && direction == -1)) {
       // Don't push to right if next item is not right enough 
       // To localize item swapping
       if(prev_left + 4 < newItem1.x) {
@@ -439,33 +446,18 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
       prev_left = newItem1.r;
       newArr.push(newItem1);
     }
-  }
-  else {
-    // Check in reverse
-    console.log("check in reverse");
-    for(var i = list.length-1; i >= 0; i--) {
-      if(i === list.length-1) {
-        prev_left = list[i].x + 4 + list[i].w;
-      }
-      if(i === idx2) continue; 
-      newItem1 = Object.assign(list[i])
-      newItem1.y = y;
-      newItem1.chan_id = chan_id;
-
-      if(prev_left > newItem1.r + 4) {
-        prev_left = newItem1.r;
-      }
+    else if (idx1 > idx2 || (idx2 === -1 && direction == 1))    {
       // Push right and if overlapping with second item
+      newItem1.x = prev_left
+      newItem1.r = prev_left + 4 + newItem1.w;
+      prev_left = newItem1.r;
+      newArr.push(newItem1);
       if(i === idx1) {
-        newItem2.x = prev_left - 4 - newItem2.w;
-        newItem2.r = prev_left;
-        prev_left = newItem2.x;
-        newArr.unshift(newItem2);
+        newItem2.x = prev_left
+        newItem2.r = prev_left + 4 + newItem2.w;
+        prev_left = newItem2.r;
+        newArr.push(newItem2);
       }
-      newItem1.x = prev_left - 4 - newItem1.w;
-      newItem1.r = prev_left;
-      prev_left = newItem1.x;
-      newArr.unshift(newItem1);
     }
   }
   //console.log("new: ",newArr.length);
@@ -516,25 +508,34 @@ function resolveCollision(chan, item, newX, newY, mouseX, mouseY) {
   let collisionIdx = -1;
   let itemIdx = -1;
 
-  if(chan===null) return [false, -1, -1, false];
+  if(chan===null) return [swapDirection, collisionIdx, itemIdx, isCollide];
   for(var i = 0;i < chan.items.length; i++) {
     if(chan.items[i].element != item.element &&
       checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
       isCollide = true;
+      /*
       if(checkSwapCollision(chan.items[i], item, newX, newY)) {
       //if(checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 0.5)) {
         console.log("collision detected: ", i);
         isSwap = true;
         collisionIdx = i;
-      }
-      //swapDirection = checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 1);
+      }*/
+    }
+    // want to determine direction only at most once per round
+    if(!isSwap) {
+      swapDirection = checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 1);
+    }
+    if(!isSwap && swapDirection != 0) {
+      console.log("collision detected: ", i);
+      isSwap = true;
+      collisionIdx = i;
     }
     if(item.id === chan.items[i].id) {
       itemIdx = i;
       //console.log(checkSelf(item, newX, newY));
     }
   }
-  return [isSwap, collisionIdx, itemIdx, isCollide];
+  return [swapDirection, collisionIdx, itemIdx, isCollide];
 }
 
 function getIndexOfItem(chan_id, item) {
