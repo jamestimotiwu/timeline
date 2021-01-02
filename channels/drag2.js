@@ -298,7 +298,7 @@ function collisionHandler(item, newX, newY) {
     chan.items = newItems;
     return finalItem;
   } 
-  if(!colReturn[3] && chan.id != null && item.chan_id != chan.id) {
+  if(!colReturn[3] && chan != null && item.chan_id != chan.id) {
     console.log("item inserted");
     colReturn[2] = getIndexOfItem(item.chan_id, item);
     if(colReturn[2] != -1) {
@@ -314,13 +314,12 @@ function collisionHandler(item, newX, newY) {
     chan.items = newItems;
     return finalItem;
   }
-  if(!colReturn[3]) {
+  if(!colReturn[3] && chan != null) {
     // Just adjust x pos
     chan.items[colReturn[2]].x = newX;
     chan.items[colReturn[2]].r = newX + chan.items[colReturn[2]].w;
     finalItem = chan.items[colReturn[2]];
     newHighlight(finalItem.x, finalItem.y, finalItem.h, finalItem.w);
-    console.log(chan.items);
     return finalItem;
   }
   // If channels are not the same and no collisions
