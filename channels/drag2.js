@@ -388,9 +388,7 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
       if(i === 0) {
         prev_left = list[0].x;
       }
-      if(i === idx2) {
-        continue;
-      }
+      if(i === idx2) continue;
       newItem1 = Object.assign(list[i])
       newItem1.y = y;
       newItem1.chan_id = chan_id;
@@ -420,9 +418,7 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
       if(i === list.length-1) {
         prev_left = list[i].x + 4 + list[i].w;
       }
-      if(i === idx2) {
-        continue;
-      }
+      if(i === idx2) continue; 
       newItem1 = Object.assign(list[i])
       newItem1.y = y;
       newItem1.chan_id = chan_id;
@@ -450,11 +446,8 @@ function swapItem(chan_id ,list, idx1, idx2, item, y) {
 // Removes item from item list
 function removeItem(chan, idx, y) {
   let newArr = [];
-  let prev_left = 0;
   let newItem = null;
-  if(idx === -1) {
-    return chan.items;
-  }
+  if(idx === -1) return chan.items;
   //console.log("spliced!", idx)
   newArr = Object.assign(chan.items);
   // If idx === 0 -> shift
@@ -467,10 +460,14 @@ function removeItem(chan, idx, y) {
     newArr.pop();
     return newArr;
   } else if (0 < idx && idx < chan.items.length) {
-    prev_left = newArr[idx].x;
+    let prev_right = newArr[idx].r;
+    let prev_left = newArr[idx].x;
     newArr.splice(idx,1);
     for(var i=idx;i<newArr.length;i++) {
+      // halt if prev_right is less than
+      if(prev_right + 4 < newArr[i].x) break;
       newArr[i].x = prev_left;
+      prev_right = newArr[i].r;
       newArr[i].r = prev_left + 4 + newArr[i].w;
       prev_left = newArr[i].r;
       newArr[i].y = y;
@@ -490,7 +487,7 @@ function resolveCollision(chan, item, newX, newY) {
   let itemIdx = -1;
 
   if(chan===null) {
-    return [false, -1, -1];
+    return [false, -1, -1, false];
   }
   for(var i = 0;i < chan.items.length; i++) {
     if(chan.items[i].element != item.element &&
