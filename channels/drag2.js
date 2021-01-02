@@ -319,7 +319,8 @@ function collisionHandler(item, newX, newY) {
     chan.items[colReturn[2]].x = newX;
     chan.items[colReturn[2]].r = newX + chan.items[colReturn[2]].w;
     finalItem = chan.items[colReturn[2]];
-    newHighlight(finalItem.x, finalItem.y, finalItem.w);
+    newHighlight(finalItem.x, finalItem.y, finalItem.h, finalItem.w);
+    console.log(chan.items);
     return finalItem;
   }
   // If channels are not the same and no collisions
@@ -486,9 +487,7 @@ function resolveCollision(chan, item, newX, newY) {
   let collisionIdx = -1;
   let itemIdx = -1;
 
-  if(chan===null) {
-    return [false, -1, -1, false];
-  }
+  if(chan===null) return [false, -1, -1, false];
   for(var i = 0;i < chan.items.length; i++) {
     if(chan.items[i].element != item.element &&
       checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
