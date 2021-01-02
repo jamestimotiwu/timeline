@@ -1,3 +1,5 @@
+var invert = false;
+
 class Draggable {
   constructor(dr,el) {
     this.el = el
@@ -21,6 +23,7 @@ class Draggable {
 
   onMouseDown(e) {
     console.log("mouse down");
+    invert = false;
     this.getDragPointer(e.clientX, e.clientY)
     this.prepareElement()
     this.moveElementTo(e.pageX, e.pageY)
@@ -55,7 +58,8 @@ class Draggable {
   onMouseMove(e) {
     this.moveElementTo(e.pageX, e.pageY)
     let item = getItemByElement(this.el);
-    this.finalItem = collisionHandler(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
+    //this.finalItem = collisionHandler(item, e.pageX - this.shiftX, e.pageY - this.shiftY);
+    this.finalItem = collisionHandler(item, this.shiftX,this.shiftY, e.pageX, e.pageY);
   }
 
   onMouseUp(e) {
@@ -147,7 +151,7 @@ function mapElements(start, n, chan_id, y) {
   for(var i=start;i<n;i++) {
     let id = "element" + i;
     let elem = document.getElementById(id);
-    elem.style.width = 100 + (Math.floor(Math.random() * Math.floor(150-100)));
+    elem.style.width = 40 + (Math.floor(Math.random() * Math.floor(450-100)));
     elem.style.background = randomColor();
 
     console.log("new draggable for ", id);
@@ -217,10 +221,32 @@ function checkSwapCollision(item1, item2, newX, newY) {
   /*
   return ((item1.y + t_offset) > boundItem.y) 
     && (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
-    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
-    */
+    ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));*/
   return (((item1.r - r_offset) > boundItem.left && boundItem.left > (item1.x + r_offset)) ||
     ((item1.r - r_offset) < boundItem.right && boundItem.right < item1.r));
+}
+
+function checkSwapCollision2(item1, item2, mouseX, mouseY, threshold) { // invert, threshold) {
+  if(item1.element === item2.element) {
+    //console.log("same item: ", item1.i );
+    return false;
+  }
+  // Check x and r at newX positions
+  const floatItem = {
+    x: mouseX,
+    r: mouseX + item2.w,
+    y: mouseY,
+  }
+  let direction = 0;
+  // -1, move moving item left
+  if(item1.x < floatItem.x && floatItem.x < (item1.x + (item1.w * threshold/2))) {
+    direction = -1;
+  }
+  // +1, move moving item right
+  if(item1.r > floatItem.x && floatItem.x > (item1.r - (item1.w * threshold/2))) {
+    direction = 1;
+  }
+  return direction;
 }
 
 // If same item check if still within bounds
@@ -270,12 +296,14 @@ function getChannelById(id) {
 }
 
 // Handle element movement and identify/handle collisions 
-function collisionHandler(item, newX, newY) {
+function collisionHandler(item, shiftX, shiftY, mouseX, mouseY) {
+  let newX = mouseX - shiftX;
+  let newY = mouseY - shiftY;
   // Check valid channel location based on newX/newY
   let chan = getChannel(newX, newY, item.h);
   let finalItem = item;
   let newItems = null;
-  var colReturn = resolveCollision(chan, item, newX, newY);
+  var colReturn = resolveCollision(chan, item, newX, newY, mouseX, mouseY);
   // If collision or new channel
   if(colReturn[0]){
     if (item.chan_id != chan.id) {
@@ -324,7 +352,8 @@ function collisionHandler(item, newX, newY) {
   }
   // If channels are not the same and no collisions
   // if !colReturn[0] or oldChan != newChan
-  if(!checkSelf(item, newX, newY)) {
+  // Also check if it's colliding with any items at all
+  if(!colReturn[3] && !checkSelf(item, newX, newY)) {
     // Check if self outside and also no longer within bounds of item
     // Remove item if no collision and leave bounds
     console.log("outside!");
@@ -479,9 +508,10 @@ function removeItem(chan, idx, y) {
 }
 
 // item1 is item checked, item2 is moving element
-function resolveCollision(chan, item, newX, newY) {
+function resolveCollision(chan, item, newX, newY, mouseX, mouseY) {
   let isCollide = false;
   let isSwap = false;
+  let swapDirection = 0;
   //let prev_left = 0;
   let collisionIdx = -1;
   let itemIdx = -1;
@@ -491,11 +521,13 @@ function resolveCollision(chan, item, newX, newY) {
     if(chan.items[i].element != item.element &&
       checkCollision(chan.items[i].x, chan.items[i].y, chan.items[i].w, chan.items[i].h, newX, newY, item.w, item.h)) {
       isCollide = true;
-    }
-    if(checkSwapCollision(chan.items[i], item, newX, newY)) {
-      console.log("collision detected: ", i);
-      isSwap = true;
-      collisionIdx = i;
+      if(checkSwapCollision(chan.items[i], item, newX, newY)) {
+      //if(checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 0.5)) {
+        console.log("collision detected: ", i);
+        isSwap = true;
+        collisionIdx = i;
+      }
+      //swapDirection = checkSwapCollision2(chan.items[i], item, mouseX, mouseY, 1);
     }
     if(item.id === chan.items[i].id) {
       itemIdx = i;
