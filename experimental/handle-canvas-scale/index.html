@@ -1,0 +1,44 @@
+
+
+
+<!-- slider -->
+<div id="outer-slider" class="middle">
+	<div class="multi-range-slider">
+    <link rel="stylesheet" href="multihandle.css">
+		<input type="range" id="input-left" min="0" max="100" value="0">
+		<input type="range" id="input-right" min="0" max="100" value="100">
+		<div class="slider">
+			<div class="track"></div>
+			<div id="range_out" class="range">
+      </div>
+      <div id="strip-out">
+      <canvas id="video-canvas" />
+      </div>
+			<!-- <div class="leftrange"></div>
+      <div class="rightrange"></div> -->
+		</div>
+	</div>
+</div>
+<script src="drag.js"></script>
+<script>
+    draggable(document.getElementById('range_out'), document.getElementById('outer-slider'));
+</script>
+
+<script type="text/javascript" src="multihandle.js"></script>
+<!-- file upload -->
+<input
+  accept="video/*"
+  id="upload-video"
+  type="file"
+  style="position: relative"
+/>
+<div id="canvases">
+</div>
+<div id="video-out">
+</div>
+<script type="text/javascript" src="video.js"></script>
+<!-- filmstrip canvas -->
+<!-- <canvas id="video-canvas" /> -->
+<script type="text/javascript" src="thumb.js"></script>
+
+
