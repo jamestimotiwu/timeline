@@ -11,7 +11,7 @@ class Event {
 
     // Const style properties
     this.eventElement.style.height = height;
-    this.eventElement.style.top = 30;
+    this.eventElement.style.top = 35;
     this.eventElement.style.position = "absolute";
     this.eventElement.style.backgroundColor = color;
     document.body.appendChild(this.eventElement);
@@ -66,7 +66,7 @@ class Event {
 class TimeMarking {
   constructor(viewableDur, minTimemarkings) {
     this.canvasElement = document.createElement('canvas');
-    this.canvasElement.style.position = "absolute";
+    this.canvasElement.style.position = "fixed";
     this.canvasElement.style.left = 0;
     this.ctx = this.canvasElement.getContext('2d');
     this.viewableDur = viewableDur;
@@ -129,8 +129,9 @@ class TimeMarking {
       if(i % markingsPerTick === 0) {
         markingHeight = this.markingHeight + 6; 
         ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center'
-        ctx.fillText(t, x, this.markingHeight+14);
+        //ctx.textAlign = 'center'
+        let timeStr = new Date(1000*t).toISOString().substr(11,11);
+        ctx.fillText(timeStr, x+2, this.markingHeight+10);
         t += tickOffset;
       }
       // Vertical line markings
