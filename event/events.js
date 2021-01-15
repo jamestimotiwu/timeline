@@ -20,7 +20,7 @@ class Event {
     this.decorateElement();
   
     // Mouse scroll resize
-    window.addEventListener('wheel', this._onScroll.bind(this));
+    //window.addEventListener('wheel', this._onScroll.bind(this));
   }
 
   width() {
@@ -35,6 +35,7 @@ class Event {
     this.eventElement.style.width = this.width();
   }
 
+  /*
   _onScroll(e) {
     const scrollTick = Math.round(e.deltaY / 50);
     const scrollPosRatio = e.offsetX / e.srcElement.clientWidth;
@@ -53,8 +54,13 @@ class Event {
 
   _zoomIn(amt, pos) {
     return;
-  }
+  }*/
 
+  updateScale(pixelsPerSecond) {
+    this.pixelsPerSecond = pixelsPerSecond;
+    // Redecor element
+    this.decorateElement();
+  }
 }
 
 class TimeMarking {
@@ -107,11 +113,17 @@ class TimeMarking {
       x += timeMarkingOffset;
     }
   }
+  
+  updateScale(pixelsPerSecond) {
+    this.pixelsPerSecond = pixelsPerSecond;
+    this._setupCanvas();
+    this._drawTimes(this.ctx);
+  }
 }
 
-const viewableDur = 10.0;
+var viewableDur = 30.0;
 const clientWidth = document.body.clientWidth;
-const pixelsPerSecond = Math.round(clientWidth/viewableDur);
+var pixelsPerSecond = Math.round(clientWidth/viewableDur);
 const dur = 3.0;
 const newStart = 2;
 console.log("w",clientWidth);
@@ -120,7 +132,21 @@ console.log("pps", pixelsPerSecond);
 const newTimeMarkings = new TimeMarking(pixelsPerSecond);
 const newEvent = new Event(newStart, newStart + dur, dur, 1.0, pixelsPerSecond);
 
-
+window.addEventListener('wheel', onScroll);
+function onScroll(e) {
+  if(e.deltaY > 0) {
+    console.log(e);
+    viewableDur = viewableDur * 1.025;
+    pixelsPerSecond = Math.round(clientWidth/viewableDur);
+    newTimeMarkings.updateScale(pixelsPerSecond)
+    newEvent.updateScale(pixelsPerSecond);
+  } else {
+    viewableDur = viewableDur * (1/1.025);
+    pixelsPerSecond = Math.round(clientWidth/viewableDur);
+    newTimeMarkings.updateScale(pixelsPerSecond)
+    newEvent.updateScale(pixelsPerSecond);
+  }
+}
 
 
 
