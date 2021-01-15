@@ -1,4 +1,4 @@
-const height = 50;
+const height = 42;
 const color = '#8c8c8c'
 class Event {
   constructor(start, end, duration, zoomFactor, pixelsPerSecond) {
@@ -11,6 +11,8 @@ class Event {
 
     // Const style properties
     this.eventElement.style.height = height;
+    this.eventElement.style.top = 30;
+    this.eventElement.style.position = "absolute";
     this.eventElement.style.backgroundColor = color;
     document.body.appendChild(this.eventElement);
 
@@ -29,6 +31,7 @@ class Event {
   }
 
   decorateElement() {
+    this.eventElement.style.left = this.start * this.pixelsPerSecond;
     this.eventElement.style.width = this.width();
   }
 
@@ -57,10 +60,12 @@ class Event {
 class TimeMarking {
   constructor(pixelsPerSecond) {
     this.canvasElement = document.createElement('canvas');
+    this.canvasElement.style.position = "absolute";
+    this.canvasElement.style.left = 0;
     this.ctx = this.canvasElement.getContext('2d');
     this.pixelsPerSecond = pixelsPerSecond;
     this.height = 30;
-    this.markingHeight = 10;
+    this.markingHeight = 6;
 
     this._setupCanvas();
     this._drawTimes(this.ctx);
@@ -69,10 +74,11 @@ class TimeMarking {
 
   _setupCanvas() {
     var dpr = window.devicePixelRatio;
-    this.canvasElement.width = document.body.clientWidth * dpr;
-    this.canvasElement.height = this.height * dpr;
+    this.canvasElement.width = document.body.clientWidth;
+    this.canvasElement.height = this.height*dpr;
     this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
+    this.pixelsPerSecond = Math.round(this.pixelsPerSecond/dpr);
   }
 
   _drawTimes(ctx) {
@@ -83,30 +89,32 @@ class TimeMarking {
     let t = 0.0;
 
     for(var i=0; i<numTimeMarks;i++) {
+      let markingHeight = this.markingHeight;
+      // Text markings
+      if(i % markingsPerSecond === 0) {
+        markingHeight = this.markingHeight + 6; 
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center'
+        ctx.fillText(t, x, this.markingHeight+14);
+        t += 1.0;
+      }
       // Vertical line markings
       ctx.strokeStyle="#000000";
       ctx.beginPath();
       ctx.moveTo(x,0);
-      ctx.lineTo(x, this.markingHeight);
+      ctx.lineTo(x, markingHeight);
       ctx.stroke();
-
-      if(i % markingsPerSecond === 0) {
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center'
-        ctx.fillText(t, x, this.markingHeight+12);
-        t += 1.0;
-      }
       x += timeMarkingOffset;
     }
   }
 }
 
 const viewableDur = 10.0;
-const dur = 2.0;
-const newStart = 1;
 const clientWidth = document.body.clientWidth;
-console.log("w",clientWidth);
 const pixelsPerSecond = Math.round(clientWidth/viewableDur);
+const dur = 3.0;
+const newStart = 2;
+console.log("w",clientWidth);
 console.log("pps", pixelsPerSecond);
 
 const newTimeMarkings = new TimeMarking(pixelsPerSecond);
