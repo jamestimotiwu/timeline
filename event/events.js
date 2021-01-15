@@ -24,9 +24,9 @@ class Event {
   }
 
   width() {
-    console.log('event pps', this.pixelsPerSecond);
+    //console.log('event pps', this.pixelsPerSecond);
     const width = Math.round(this.duration * this.zoomFactor * this.pixelsPerSecond)
-    console.log(width);
+    //console.log(width);
     return width;
   }
 
@@ -74,6 +74,7 @@ class TimeMarking {
     this.height = 30;
     this.markingHeight = 6;
     this.minTimemarkings = minTimemarkings;
+    //this.dpr = window.devicePixelRatio;
 
     this._setupCanvas();
     this._drawTimes(this.ctx);
@@ -81,10 +82,10 @@ class TimeMarking {
   }
 
   _setupCanvas() {
-    var dpr = window.devicePixelRatio;
+    const dpr = window.devicePixelRatio;
     this.canvasElement.width = document.body.clientWidth;
     this.canvasElement.height = this.height*dpr;
-    //this.ctx.scale(dpr, dpr);
+    this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
     //this.pixelsPerSecond = Math.round(this.pixelsPerSecond/dpr);
   }
@@ -106,10 +107,11 @@ class TimeMarking {
 
   // Drawtimes
   _drawTimes(ctx) {
-    let markingsPerTick = 10;
+    const dpr = window.devicePixelRatio;
+    let markingsPerTick = 5;
     let tickOffset = this._getTimeOffset();
-    console.log('tick',tickOffset);
-    let pixelsPerTick = Math.round(document.body.clientWidth/(viewableDur/tickOffset));
+    //console.log('tick',tickOffset);
+    let pixelsPerTick = Math.round((1/dpr)*document.body.clientWidth/(viewableDur/tickOffset));
     let timeMarkingOffset = pixelsPerTick / markingsPerTick;
     let numTimeMarks = document.body.clientWidth / timeMarkingOffset;
     /*
@@ -153,7 +155,7 @@ const clientWidth = document.body.clientWidth;
 const dur = 3.0;
 const newStart = 2;
 var viewableDur = 30.0;
-var minTimemarkings = 4;
+var minTimemarkings = 3;
 var pixelsPerSecond = Math.round(clientWidth/viewableDur);
 console.log("w",clientWidth);
 console.log("pps", pixelsPerSecond);
@@ -164,7 +166,7 @@ const newEvent = new Event(newStart, newStart + dur, dur, 1.0, pixelsPerSecond);
 window.addEventListener('wheel', onScroll);
 function onScroll(e) {
   if(e.deltaY > 0) {
-    console.log(e);
+    //console.log(e);
     viewableDur = viewableDur+1;
     pixelsPerSecond = Math.round(clientWidth/viewableDur);
     newTimeMarkings.updateScale(viewableDur)
