@@ -64,14 +64,16 @@ class Event {
 }
 
 class TimeMarking {
-  constructor(pixelsPerSecond) {
+  constructor(viewableDur, minTimemarkings) {
     this.canvasElement = document.createElement('canvas');
     this.canvasElement.style.position = "absolute";
     this.canvasElement.style.left = 0;
     this.ctx = this.canvasElement.getContext('2d');
-    this.pixelsPerSecond = pixelsPerSecond;
+    this.viewableDur = viewableDur;
+    this.pixelsPerSecond = Math.round(document.body.clientWidth/viewableDur);
     this.height = 30;
     this.markingHeight = 6;
+    this.minTimemarkings = minTimemarkings;
 
     this._setupCanvas();
     this._drawTimes(this.ctx);
@@ -82,27 +84,52 @@ class TimeMarking {
     var dpr = window.devicePixelRatio;
     this.canvasElement.width = document.body.clientWidth;
     this.canvasElement.height = this.height*dpr;
-    this.ctx.scale(dpr, dpr);
+    //this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
-    this.pixelsPerSecond = Math.round(this.pixelsPerSecond/dpr);
+    //this.pixelsPerSecond = Math.round(this.pixelsPerSecond/dpr);
   }
 
+  //  1, 5, 15, 30
+  //  1*minTimemarkings, 5*minTimemarkings.. etc
+  _getTimeOffset() {
+    const durations = [0.5,1,5,15,30,60];
+    let prev = 1000000;
+    for(var i=durations.length;i>=0;i--) {
+      //dur < this.viewableDur < prev
+      if(durations[i]*this.minTimemarkings < this.viewableDur && this.viewableDur <= prev){
+        return durations[i];
+      }
+      prev = durations[i]*this.minTimemarkings;
+    }
+    return 60;
+  }
+
+  // Drawtimes
   _drawTimes(ctx) {
+    let markingsPerTick = 10;
+    let tickOffset = this._getTimeOffset();
+    console.log('tick',tickOffset);
+    let pixelsPerTick = Math.round(document.body.clientWidth/(viewableDur/tickOffset));
+    let timeMarkingOffset = pixelsPerTick / markingsPerTick;
+    let numTimeMarks = document.body.clientWidth / timeMarkingOffset;
+    /*
     let markingsPerSecond = 10;
     let timeMarkingOffset = this.pixelsPerSecond / markingsPerSecond;
     let numTimeMarks = document.body.clientWidth / timeMarkingOffset;
+    */
     let x = 0;
     let t = 0.0;
 
     for(var i=0; i<numTimeMarks;i++) {
       let markingHeight = this.markingHeight;
       // Text markings
-      if(i % markingsPerSecond === 0) {
+      //if(i % markingsPerSecond === 0) {
+      if(i % markingsPerTick === 0) {
         markingHeight = this.markingHeight + 6; 
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center'
         ctx.fillText(t, x, this.markingHeight+14);
-        t += 1.0;
+        t += tickOffset;
       }
       // Vertical line markings
       ctx.strokeStyle="#000000";
@@ -114,36 +141,38 @@ class TimeMarking {
     }
   }
   
-  updateScale(pixelsPerSecond) {
-    this.pixelsPerSecond = pixelsPerSecond;
+  updateScale(viewableDur) {
+    this.pixelsPerSecond = Math.round(document.body.clientWidth/viewableDur);
+    this.viewableDur = viewableDur;
     this._setupCanvas();
     this._drawTimes(this.ctx);
   }
 }
 
-var viewableDur = 30.0;
 const clientWidth = document.body.clientWidth;
-var pixelsPerSecond = Math.round(clientWidth/viewableDur);
 const dur = 3.0;
 const newStart = 2;
+var viewableDur = 30.0;
+var minTimemarkings = 4;
+var pixelsPerSecond = Math.round(clientWidth/viewableDur);
 console.log("w",clientWidth);
 console.log("pps", pixelsPerSecond);
 
-const newTimeMarkings = new TimeMarking(pixelsPerSecond);
+const newTimeMarkings = new TimeMarking(viewableDur, minTimemarkings);
 const newEvent = new Event(newStart, newStart + dur, dur, 1.0, pixelsPerSecond);
 
 window.addEventListener('wheel', onScroll);
 function onScroll(e) {
   if(e.deltaY > 0) {
     console.log(e);
-    viewableDur = viewableDur * 1.025;
+    viewableDur = viewableDur+1;
     pixelsPerSecond = Math.round(clientWidth/viewableDur);
-    newTimeMarkings.updateScale(pixelsPerSecond)
+    newTimeMarkings.updateScale(viewableDur)
     newEvent.updateScale(pixelsPerSecond);
   } else {
-    viewableDur = viewableDur * (1/1.025);
+    viewableDur = viewableDur-1;
     pixelsPerSecond = Math.round(clientWidth/viewableDur);
-    newTimeMarkings.updateScale(pixelsPerSecond)
+    newTimeMarkings.updateScale(viewableDur)
     newEvent.updateScale(pixelsPerSecond);
   }
 }
